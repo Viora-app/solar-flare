@@ -1,15 +1,11 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{self, Transfer};
 use anchor_lang::solana_program::system_instruction;
-use anchor_lang::solana_program::program::invoke;
 
-
-declare_id!("5LoKChz3AivF2RSwn1QfNMcSmFDSZv44yVZjd2ihyMni");
-
+declare_id!("YourProgramID");
 
 #[program]
 pub mod crowdfunding {
-
     use super::*;
 
     // Create a project with softcap, hardcap, deadline, and title
@@ -34,40 +30,36 @@ pub mod crowdfunding {
     }
 
     // Contribute to a project
-	pub fn contribute(ctx: Context<Contribute>, amount: u64) -> Result<()> {
-		let project = &mut ctx.accounts.project;
-		let project_key = project.key().clone();
-		let project_info = project.to_account_info().clone();
-	
-		// Transfer the contribution amount to the project's PDA
-		let ix = system_instruction::transfer(
-			&ctx.accounts.contributor.key(),
-			&project_key,
-			amount,
-		);
-		invoke(
-			&ix,
-			&[
-				ctx.accounts.contributor.to_account_info(),
-				project_info,
-			],
-		)?;
-	
-		// Update project funding
-		project.current_funding += amount;
-	
-		Ok(())
-	}
+    pub fn contribute(ctx: Context<Contribute>, amount: u64) -> Result<()> {
+        let project = &mut ctx.accounts.project;
+
+        // Transfer the contribution amount to the project's PDA
+        let ix = system_instruction::transfer(
+            &ctx.accounts.contributor.key(),
+            &ctx.accounts.project.key(),
+            amount,
+        );
+        invoke(
+            &ix,
+            &[
+                ctx.accounts.contributor.to_account_info(),
+                ctx.accounts.project.to_account_info(),
+            ],
+        )?;
+
+        // Update project funding
+        project.current_funding += amount;
+
+        Ok(())
+    }
 
     // Withdraw funds if the project reached the softcap
     pub fn withdraw_funds(ctx: Context<WithdrawFunds>) -> Result<()> {
         let project = &mut ctx.accounts.project;
-		let project_key = project.key().clone();
-
 
         // Transfer all the current funding to the artist
         let ix = system_instruction::transfer(
-            &project_key,
+            &ctx.accounts.project.key(),
             &ctx.accounts.artist.key(),
             project.current_funding,
         );
