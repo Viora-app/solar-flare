@@ -1,102 +1,61 @@
+#![allow(clippy::result_large_err)]
+
 use anchor_lang::prelude::*;
-use anchor_lang::system_program::{self, Transfer};
-use anchor_lang::solana_program::system_instruction;
-use anchor_lang::solana_program::program::invoke;
 
-
-declare_id!("5LoKChz3AivF2RSwn1QfNMcSmFDSZv44yVZjd2ihyMni");
-
+declare_id!("3mDN8aNgwdM6BUBDiaxbmpRSwWoLeyrMtak5fbLsWtkW");
 
 #[program]
 pub mod crowdfunding {
-
     use super::*;
 
-    // Create a project with softcap, hardcap, deadline, and title
-    pub fn create_project(
-        ctx: Context<CreateProject>, 
-        softcap: u64, 
-        hardcap: u64, 
-        deadline: i64, 
-        title: String
-    ) -> Result<()> {
+    pub fn create_project(ctx: Context<CreateProject>, title: String) -> Result<()> {
         let project = &mut ctx.accounts.project;
 
-        // Assign project details
+        // Convert title to a fixed-length Vec<u8> (20 bytes max)
+        let mut title_bytes = title.as_bytes().to_vec();
+        title_bytes.resize(20, 0); // Ensure the title is exactly 20 bytes long (pad with zeros if shorter)
+
         project.artist = ctx.accounts.artist.key();
-        project.softcap = softcap;
-        project.hardcap = hardcap;
-        project.deadline = deadline;
-        project.current_funding = 0;
-        project.title = title;
+        project.title = title_bytes;
+        project.project_id = Clock::get()?.unix_timestamp as u64; // Generate unique ID using timestamp
+        project.current_funding = 0; // Initialize funding
+
+        // Log a message to confirm the creation
+        msg!("Project created by artist {}", project.artist);
 
         Ok(())
     }
 
-    // Contribute to a project
-	pub fn contribute(ctx: Context<Contribute>, amount: u64) -> Result<()> {
-		let project = &mut ctx.accounts.project;
-		let project_key = project.key().clone();
-		let project_info = project.to_account_info().clone();
-	
-		// Transfer the contribution amount to the project's PDA
-		let ix = system_instruction::transfer(
-			&ctx.accounts.contributor.key(),
-			&project_key,
-			amount,
-		);
-		invoke(
-			&ix,
-			&[
-				ctx.accounts.contributor.to_account_info(),
-				project_info,
-			],
-		)?;
-	
-		// Update project funding
-		project.current_funding += amount;
-	
-		Ok(())
-	}
-
-    // Withdraw funds if the project reached the softcap
-    pub fn withdraw_funds(ctx: Context<WithdrawFunds>) -> Result<()> {
+    pub fn contribute(ctx: Context<Contribute>, amount: u64) -> Result<()> {
         let project = &mut ctx.accounts.project;
-		let project_key = project.key().clone();
 
-
-        // Transfer all the current funding to the artist
-        let ix = system_instruction::transfer(
-            &project_key,
-            &ctx.accounts.artist.key(),
-            project.current_funding,
+        // Log the contribution
+        msg!(
+            "Contributor {} is contributing {} lamports",
+            ctx.accounts.contributor.key(),
+            amount
         );
-        invoke(
-            &ix,
-            &[
-                ctx.accounts.project.to_account_info(),
-                ctx.accounts.artist.to_account_info(),
-            ],
-        )?;
 
-        Ok(())
-    }
+        // Update project's funding
+        project.current_funding = project
+            .current_funding
+            .checked_add(amount)
+            .ok_or(ProgramError::ArithmeticOverflow)?;
 
-    // Refund contributors if the softcap wasn't reached
-    pub fn refund_contributors(ctx: Context<RefundContributors>, amount: u64) -> Result<()> {
-        let project = &mut ctx.accounts.project;
-
-        // Transfer the specified amount back to the contributor
-        let ix = system_instruction::transfer(
-            &ctx.accounts.project.key(),
+        // Transfer the contribution amount to the project PDA account
+        let ix = anchor_lang::solana_program::system_instruction::transfer(
             &ctx.accounts.contributor.key(),
+            &ctx.accounts.project.key(),
             amount,
         );
-        invoke(
+
+        // Execute the instruction
+        anchor_lang::solana_program::program::invoke(
             &ix,
             &[
-                ctx.accounts.project.to_account_info(),
                 ctx.accounts.contributor.to_account_info(),
+                ctx.accounts.project.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
             ],
         )?;
 
@@ -104,59 +63,36 @@ pub mod crowdfunding {
     }
 }
 
-// Accounts for creating a project
+#[account]
+pub struct ProjectState {
+    pub artist: Pubkey,           // 32 bytes
+    pub title: Vec<u8>,           // Fixed length, 20 bytes
+    pub project_id: u64,          // 8 bytes
+    pub current_funding: u64,     // 8 bytes
+}
+
+// In the account creation, space should be adjusted properly:
 #[derive(Accounts)]
+#[instruction(title: String)]
 pub struct CreateProject<'info> {
     #[account(
         init,
+        seeds = [title.as_bytes(), artist.key().as_ref()],
+        bump,
         payer = artist,
-        space = 8 + 32 + 40 + 8 + 8 + 8 + 8,
-        seeds = [artist.key().as_ref(), title.as_bytes()],
-        bump
+        space = 8 + 32 + 4 + 20 + 8 + 8  // 8 for discriminator, 32 for artist, 4 for Vec<u8> (prefix length), 20 for title, 8 for project_id, 8 for current_funding
     )]
-    pub project: Account<'info, Project>,
+    pub project: Account<'info, ProjectState>,
     #[account(mut)]
     pub artist: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
 
-// Accounts for contributing to a project
 #[derive(Accounts)]
 pub struct Contribute<'info> {
     #[account(mut)]
-    pub project: Account<'info, Project>,
+    pub project: Account<'info, ProjectState>,
     #[account(mut)]
     pub contributor: Signer<'info>,
     pub system_program: Program<'info, System>,
-}
-
-// Accounts for withdrawing funds
-#[derive(Accounts)]
-pub struct WithdrawFunds<'info> {
-    #[account(mut)]
-    pub project: Account<'info, Project>,
-    #[account(mut)]
-    pub artist: Signer<'info>,
-    pub system_program: Program<'info, System>,
-}
-
-// Accounts for refunding contributors
-#[derive(Accounts)]
-pub struct RefundContributors<'info> {
-    #[account(mut)]
-    pub project: Account<'info, Project>,
-    #[account(mut)]
-    pub contributor: Signer<'info>,
-    pub system_program: Program<'info, System>,
-}
-
-// Data structure for a project
-#[account]
-pub struct Project {
-    pub artist: Pubkey,
-    pub title: String,
-    pub softcap: u64,
-    pub hardcap: u64,
-    pub deadline: i64,
-    pub current_funding: u64,
 }
