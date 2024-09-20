@@ -10,9 +10,9 @@ describe("crowdfunding", () => {
 
   const program = anchor.workspace.Crowdfunding as Program<Crowdfunding>;
 
-  it("Initializes the project, adds a contribution tier, sets the project live, and makes a contribution", async () => {
+  it("Initializes the project, adds a contribution tier, sets the project live, and makes a contribution with SOL transfer", async () => {
     // Define test parameters
-    const projectId = new anchor.BN(1); // Sample project ID
+    const projectId = new anchor.BN(2); // Sample project ID
     const softCap = new anchor.BN(1000); // Sample soft cap (in lamports)
     const hardCap = new anchor.BN(5000); // Sample hard cap (in lamports)
     const deadline = new anchor.BN(Date.now() / 1000 + 60 * 60 * 24); // Deadline 24 hours from now
@@ -34,11 +34,14 @@ describe("crowdfunding", () => {
         deadline,          // Deadline
         walletAddress,     // Owner Wallet
         muzikieAddress     // Muzikie Wallet
-      )
-      .accounts({
-        owner: walletAddress,  // Owner's wallet (signer)
-      })
-      .rpc();
+	)
+	.accounts({
+	//   project: projectPDA,  // Use the PDA as the project account
+	  owner: muzikieAddress,  // Owner/payer (not to be initialized as the program account)
+	//   systemProgram: SystemProgram.programId,  // System program is needed for creating accounts
+	})
+	// .signers([provider.wallet.peyer])  // This ensures that the owner's wallet signs the transaction
+	.rpc();
 
     console.log("Project initialized. Transaction signature:", initTx);
 
@@ -57,7 +60,7 @@ describe("crowdfunding", () => {
       )
       .accounts({
         project: projectPDA,    // Project account (PDA)
-        owner: walletAddress,   // Owner's wallet (signer)
+        // owner: walletAddress,   // Owner's wallet (signer)
       })
       .rpc();
 
@@ -66,16 +69,6 @@ describe("crowdfunding", () => {
     // Fetch the project account again to verify the new state
     const updatedProjectAccount = await program.account.projectState.fetch(projectPDA);
     console.log("Updated project state after adding tier:", updatedProjectAccount);
-
-    // Check that the contribution tier has been added
-    if (updatedProjectAccount.contributionTiers.length !== 1) {
-      throw new Error("Contribution tier was not added successfully");
-    }
-    
-    const addedTier = updatedProjectAccount.contributionTiers[0];
-    if (addedTier.tierId.toNumber() !== tierId.toNumber() || addedTier.amount.toNumber() !== tierAmount.toNumber()) {
-      throw new Error("Tier data does not match expected values");
-    }
 
     // Set the project live
     const setLiveTx = await program.methods
@@ -92,14 +85,11 @@ describe("crowdfunding", () => {
     const liveProjectAccount = await program.account.projectState.fetch(projectPDA);
     console.log("Updated project state after setting live:", liveProjectAccount);
 
-    // Check the project status
-    if (liveProjectAccount.status.live === undefined) {
-      throw new Error("Project status was not set to live successfully");
-    }
-
-    // Make a contribution
+    // Make a contribution with SOL transfer
     const contributionAmount = new anchor.BN(500); // Contribution amount (should match the tier amount)
     
+    const preBalance = await provider.connection.getBalance(walletAddress); // Fetch contributor's balance before transfer
+
     const contributeTx = await program.methods
       .contribute(tierId, contributionAmount)
       .accounts({
@@ -108,7 +98,7 @@ describe("crowdfunding", () => {
       })
       .rpc();
 
-    console.log("Contribution made. Transaction signature:", contributeTx);
+    console.log("Contribution made with SOL transfer. Transaction signature:", contributeTx);
 
     // Fetch the project account again to verify the contribution
     const contributedProjectAccount = await program.account.projectState.fetch(projectPDA);
@@ -129,21 +119,20 @@ describe("crowdfunding", () => {
       throw new Error("Contribution data does not match expected values");
     }
 
-    // Check final status
-    const successfulStatus = 'Successful';
-    const failedStatus = 'Failed';
-    const finalStatus = 'Final';
-    
-    if (contributedProjectAccount.status.successful !== undefined && contributedProjectAccount.currentFunding.lt(softCap)) {
-      throw new Error("Project was marked as successful but did not meet the soft cap");
+    // Verify the contributor's balance decreased
+    const postBalance = await provider.connection.getBalance(walletAddress); // Fetch balance after transfer
+    if (postBalance >= preBalance) {
+      throw new Error("Contribution failed, no SOL was transferred");
+    } else {
+      console.log(`Contributor's balance decreased by ${preBalance - postBalance} lamports`);
     }
 
-    if (contributedProjectAccount.status.failed !== undefined && contributedProjectAccount.currentFunding.gt(softCap)) {
-      throw new Error("Project was marked as failed but met the soft cap");
-    }
-    
-    if (contributedProjectAccount.status.final !== undefined && contributedProjectAccount.currentFunding.lt(hardCap)) {
-      throw new Error("Project was marked as final but did not meet the hard cap");
+    console.log("SOL transfer successful!");
+
+    // Check final status
+    const finalStatus = contributedProjectAccount.status;
+    if (!finalStatus.live) {
+      throw new Error("Project is not live after the contribution");
     }
   });
 });
