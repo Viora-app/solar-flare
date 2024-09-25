@@ -10,6 +10,7 @@ pub enum CrowdfundingError {
 
     #[msg("The contribution amount is less than the minimum tier amount.")]
     InvalidContributionAmount,
+
     #[msg("The project is not live.")]
     ProjectNotLive,
 
@@ -27,4 +28,11 @@ pub enum CrowdfundingError {
 
     #[msg("No contribution tiers available.")]
     NoContributionTiers,
+
+    // Fixed error message to match the test
+    #[msg("Maximum contribution tiers reached.")]
+    MaxContributionTiersReached,  // Update this to match the test
+
+    #[msg("You are not authorized to add tiers.")]
+    Unauthorized,
 }
