@@ -35,4 +35,10 @@ pub enum CrowdfundingError {
 
     #[msg("You are not authorized to add tiers.")]
     Unauthorized,
+
+    #[msg("The project cannot be finalized, as it is not in a finalizable state.")]
+    ProjectNotFinalizable,  // Add this new variant
+
+    #[msg("Contributor not found for refund.")]
+    ContributorNotFound,  // <--- Add this variant
 }

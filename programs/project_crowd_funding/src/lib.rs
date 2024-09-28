@@ -78,6 +78,12 @@ pub mod crowdfunding {
     ) -> Result<()> {
         instructions::contribute::contribute(ctx, tier_id, amount)
     }
+
+    pub fn finalize(
+        ctx: Context<Finalize>
+    ) -> Result<()> {
+        instructions::finalize::finalize(ctx)
+    }
 }
 
 
