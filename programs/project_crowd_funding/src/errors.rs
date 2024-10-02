@@ -11,14 +11,11 @@ pub enum CrowdfundingError {
     #[msg("The contribution amount is less than the minimum tier amount.")]
     InvalidContributionAmount,
 
-    #[msg("The project is not live.")]
-    ProjectNotLive,
+    #[msg("The project is not published.")]
+    ProjectNotPublished,
 
     #[msg("The project deadline has passed.")]
     DeadlinePassed,
-
-    #[msg("The contribution tier was not found.")]
-    TierNotFound,
 
     #[msg("The contribution amount does not match the required tier amount.")]
     IncorrectAmount,
@@ -41,4 +38,19 @@ pub enum CrowdfundingError {
 
     #[msg("Contributor not found for refund.")]
     ContributorNotFound,  // <--- Add this variant
+
+    #[msg("Deadline not passed.")]
+    DeadlineNotPassed,
+	
+	#[msg("The project is not eligible for reimbursements.")]
+    ProjectNotReimbursable,
+
+    #[msg("The contributor was not found or has no unreimbursed contributions.")]
+    NoUnreimbursedContributions,
+
+    #[msg("The project does not have sufficient funds for reimbursement.")]
+    InsufficientFunds,
+
+    #[msg("The contribution tier was not found.")]
+    TierNotFound,
 }

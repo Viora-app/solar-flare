@@ -43,17 +43,20 @@ impl ContributionTier {
 pub struct Contribution {
     pub sender_address: Pubkey,
     pub contribution_tier_id: u64,
+	pub reimbursed: bool,  // New flag to track whether the contribution has been reimbursed
 }
 
 impl Contribution {
-    pub const LEN: usize = 32 + 8;
+    pub const LEN: usize = 32 + 8 + 1;
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
 pub enum ProjectStatus {
     Draft,
-    Live,
+    Published,
     Successful,
+    SoldOut,
     Failed,
     Final,
+    Reimbursing,
 }

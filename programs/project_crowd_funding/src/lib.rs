@@ -5,10 +5,9 @@ pub mod instructions;
 pub mod state;
 
 // use state::*;
+use crate::errors::CrowdfundingError;
 use instructions::*;
 use state::ProjectState;
-use crate::errors::CrowdfundingError;
-
 
 // use crate::instruction::AddContributionTier;
 
@@ -48,8 +47,7 @@ pub mod crowdfunding {
         instructions::add_tier::add_contribution_tier(ctx, tier_id, amount)
     }
 
-    // Set the project status to Live if conditions are met
-    pub fn set_live(ctx: Context<SetLive>) -> Result<()> {
+    pub fn set_publish(ctx: Context<SetPublish>) -> Result<()> {
         let project = &mut ctx.accounts.project;
 
         // Ensure the project is in draft status
@@ -64,10 +62,10 @@ pub mod crowdfunding {
             CrowdfundingError::NoContributionTiers
         );
 
-        // Set the status to Live
-        project.status = ProjectStatus::Live;
+        // Set the status to Published
+        project.status = ProjectStatus::Published;
 
-        msg!("Project status set to Live.");
+        msg!("Project status set to Published.");
         Ok(())
     }
 
@@ -79,19 +77,16 @@ pub mod crowdfunding {
         instructions::contribute::contribute(ctx, tier_id, amount)
     }
 
-    pub fn finalize(
-        ctx: Context<Finalize>
-    ) -> Result<()> {
-        instructions::finalize::finalize(ctx)
-    }
+    // pub fn finalize(
+    //     ctx: Context<Finalize>
+    // ) -> Result<()> {
+    //     instructions::finalize::finalize(ctx)
+    // }
 }
-
-
-
 
 // The context struct for the set_live function
 #[derive(Accounts)]
-pub struct SetLive<'info> {
+pub struct SetPublish<'info> {
     #[account(mut)]
     pub project: Account<'info, ProjectState>,
     pub owner: Signer<'info>, // The wallet that owns the project

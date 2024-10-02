@@ -4,6 +4,7 @@ use anchor_lang::system_program::transfer;
 use crate::state::project::{ProjectState , ProjectStatus, Contribution}; // Correctly import ProjectState from the project module
 use crate::errors::CrowdfundingError;
 
+
 pub fn contribute(
     ctx: Context<Contribute>,
     tier_id: u64,
@@ -12,10 +13,10 @@ pub fn contribute(
     let project = &mut ctx.accounts.project;
     let contributor = &ctx.accounts.contributor;
 
-    // Check if the project is live
+    // Check if the project is in a valid status for contributions
     require!(
-        project.status == ProjectStatus::Live,
-        CrowdfundingError::ProjectNotLive
+        project.status == ProjectStatus::Published || project.status == ProjectStatus::Successful,
+        CrowdfundingError::ProjectNotPublished
     );
 
     // Ensure the deadline has not passed
@@ -24,7 +25,7 @@ pub fn contribute(
         CrowdfundingError::DeadlinePassed
     );
 
-    // Ensure the hard cap is not met
+    // Ensure the hard cap is not met (cannot contribute after hard cap)
     require!(
         project.current_funding < project.hard_cap,
         CrowdfundingError::HardCapReached
@@ -44,39 +45,37 @@ pub fn contribute(
         CrowdfundingError::IncorrectAmount
     );
 
-    // Update the current funding
+    // Perform the SOL transfer from contributor to project first
+    // Corrected: Use the method defined in the `Contribute` struct
+
+    // Only update project funding and contribution if the transfer is successful
     project.current_funding += amount;
 
     // Add a contribution entry
     let contribution = Contribution {
         contribution_tier_id: tier_id,
         sender_address: contributor.key(),
+        reimbursed: false,
     };
     project.contributions.push(contribution);
 
-    // Check if the hard cap is met
+    // After each contribution, check if we meet or exceed soft cap or hard cap
     if project.current_funding >= project.hard_cap {
+        // If hard cap is reached, mark project as SoldOut
+        project.status = ProjectStatus::SoldOut;
+        msg!("Project status set to SoldOut.");
+    } else if project.current_funding >= project.soft_cap {
+        // If soft cap is met, mark project as Successful
         project.status = ProjectStatus::Successful;
         msg!("Project status set to Successful.");
-    } else {
-        // Check if the deadline has passed to update status if needed
-        if Clock::get()?.unix_timestamp >= project.deadline {
-            if project.current_funding >= project.soft_cap {
-                project.status = ProjectStatus::Successful;
-                msg!("Project status set to Successful.");
-            } else {
-                project.status = ProjectStatus::Failed;
-                msg!("Project status set to Failed.");
-            }
-        }
     }
-    
-    // Transfer SOL from contributor to the project
+
     ctx.accounts.transfer_sol(amount)?;
 
     msg!("Contribution recorded.");
     Ok(())
 }
+
 
 #[derive(Accounts)]
 pub struct Contribute<'info> {
