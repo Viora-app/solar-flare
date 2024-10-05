@@ -1,26 +1,22 @@
 use anchor_lang::prelude::*;
 
-pub mod errors;
 pub mod instructions;
 pub mod state;
+pub mod errors;
 
 // use state::*;
 use crate::errors::CrowdfundingError;
 use instructions::*;
-use state::ProjectState;
-
-// use crate::instruction::AddContributionTier;
+use state::{ProjectState, ProjectStatus};
 
 declare_id!("31Yra1Eyy4TcU4saGyWRqHamgvEeauVF1gAnjwqArwoW");
 
 #[program]
 pub mod crowdfunding {
-    use state::ProjectStatus;
-
     use super::*;
 
     pub fn init_project(
-        ctx: Context<InitProject>, // Ensure `InitProject` is correctly imported
+        ctx: Context<InitProject>,
         project_id: u64,
         soft_cap: u64,
         hard_cap: u64,
@@ -28,7 +24,7 @@ pub mod crowdfunding {
         wallet_address: Pubkey,
         muzikie_address: Pubkey,
     ) -> Result<()> {
-        instructions::init_project::init_project(
+        instructions::init_project_v1::init_project(
             ctx,
             project_id,
             soft_cap,
@@ -37,14 +33,6 @@ pub mod crowdfunding {
             wallet_address,
             muzikie_address,
         )
-    }
-
-    pub fn add_contribution_tier(
-        ctx: Context<AddContributionTier>, // Ensure `AddContributionTier` is correctly imported
-        tier_id: u64,
-        amount: u64,
-    ) -> Result<()> {
-        instructions::add_tier::add_contribution_tier(ctx, tier_id, amount)
     }
 
     pub fn set_publish(ctx: Context<SetPublish>) -> Result<()> {
@@ -69,20 +57,20 @@ pub mod crowdfunding {
         Ok(())
     }
 
-    pub fn contribute(
-        ctx: Context<Contribute>, // Ensure `Contribute` is correctly imported
-        tier_id: u64,
-        amount: u64,
-    ) -> Result<()> {
-        instructions::contribute::contribute(ctx, tier_id, amount)
+    pub fn contribute(ctx: Context<Contribute>, amount: u64, tier_id: u64) -> Result<()> {
+        instructions::contribute_v1::contribute(ctx, amount, tier_id)
     }
 
-    // pub fn finalize(
-    //     ctx: Context<Finalize>
-    // ) -> Result<()> {
-    //     instructions::finalize::finalize(ctx)
-    // }
+    pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
+        instructions::finalize_project_v1::finalize_project(ctx)
+    }
+
+    pub fn refund(ctx: Context<Refund>, amount: u64) -> Result<()> {
+        instructions::refund_v1::refund(ctx, amount)
+    }
 }
+
+
 
 // The context struct for the set_live function
 #[derive(Accounts)]
