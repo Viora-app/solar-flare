@@ -2,17 +2,16 @@ use anchor_lang::prelude::*;
 
 #[account]
 pub struct ProjectState {
-    pub project_id: u64,            // Unique ID for the project
-    pub owner: Pubkey,              // Artist or owner's wallet address
-    pub soft_cap: u64,              // Minimum amount required for success
-    pub hard_cap: u64,              // Maximum amount to raise
-    pub deadline: i64,              // Deadline (as a Unix timestamp)
-    pub current_funding: u64,       // Total funding raised so far
-    pub contribution_tiers: Vec<ContributionTier>, // List of contribution tiers
-    pub status: ProjectStatus,      // Current status (Draft, Published, etc.)
-    pub muzikie_address: Pubkey,    // Muzikie's wallet address
+    pub project_id: u64,
+    pub owner: Pubkey,
+    pub soft_cap: u64,
+    pub hard_cap: u64,
+    pub deadline: i64,
+    pub current_funding: u64,
+    pub contribution_tiers: Vec<ContributionTier>,
+    pub status: ProjectStatus,
+    pub escrow: Pubkey, // project's account witch contains the funds
 	pub bump: u8,
-    // pub wallet_address: Pubkey,     // Artist's wallet address
 }
 
 impl ProjectState {
@@ -47,5 +46,5 @@ pub enum ProjectStatus {
     SoldOut,
     Failed,
     Reimbursing,
-    Final,
+    Failing,
 }

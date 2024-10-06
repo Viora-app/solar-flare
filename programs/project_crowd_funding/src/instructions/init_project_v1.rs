@@ -8,7 +8,7 @@ pub fn init_project(
     hard_cap: u64,
     deadline: i64,
     owner: Pubkey,
-    muzikie_address: Pubkey,
+    escrow: Pubkey,
 ) -> Result<()> {
     let project = &mut ctx.accounts.project;
 
@@ -18,7 +18,7 @@ pub fn init_project(
     project.hard_cap = hard_cap;
     project.deadline = deadline;
     project.current_funding = 0;
-    project.muzikie_address = muzikie_address;
+    project.escrow = escrow;
     project.status = ProjectStatus::Draft;
 
     msg!("Project initialized with ID: {}", project.project_id);
@@ -32,7 +32,7 @@ pub struct InitProject<'info> {
     pub project: Account<'info, ProjectState>,
     #[account(mut)]
     pub owner: Signer<'info>, // The artist or project owner
-	#[account(mut)]
-	muzikie_address: Signer<'info>, // Muzikie wallet address
-    pub system_program: Program<'info, System>, // System program for SOL transfers
+    #[account(mut)]
+    pub escrow: Signer<'info>, // project's account witch contains the funds
+    pub system_program: Program<'info, System>,
 }

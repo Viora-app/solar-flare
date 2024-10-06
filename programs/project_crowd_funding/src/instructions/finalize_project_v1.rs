@@ -1,34 +1,38 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program::{self, Transfer};
-use crate::state::ProjectState;
+use crate::state::{ProjectState, ProjectStatus};
+use crate::errors::CrowdfundingError;
 
 pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
-    let project = &ctx.accounts.project; // Immutable borrow
+    let project = &mut ctx.accounts.project;
+    let current_timestamp = Clock::get()?.unix_timestamp;
 
-    // Fetch the amount to transfer from the immutable reference
-    let amount_to_transfer = project.current_funding * 80 / 100;
-
-    if amount_to_transfer == 0 {
-        return Err(error!(ErrorCode::InsufficientFunds));
-    }
-
-
-    // Construct the CPI context for the transfer
-    let cpi_context = CpiContext::new(
-        ctx.accounts.system_program.to_account_info(),
-        Transfer {
-            from: ctx.accounts.muzikie_address.to_account_info(), // Still using the mutable borrow here
-            to: ctx.accounts.owner.to_account_info(),
-        },
+    // Ensure the project deadline has passed
+    require!(
+        current_timestamp > project.deadline,
+        CrowdfundingError::DeadlineNotPassed
     );
 
-    // Execute the transfer
-    system_program::transfer(cpi_context, amount_to_transfer)?;
+    if project.status == ProjectStatus::Successful {
+        let artist_share = (project.current_funding * 84) / 100;
+        let muzikie_share = (project.current_funding * 15) / 100;
+        let escrow_balance = **ctx.accounts.escrow.lamports.borrow();
 
-    // Now mutate the project state
-    let project_mut = &mut ctx.accounts.project; // Mutable borrow here
-    project_mut.current_funding = 0; // Reset funding to zero after transfer
-    msg!("Successfully transferred {} lamports from project to owner.", amount_to_transfer);
+        require!(
+            escrow_balance >= artist_share + muzikie_share,
+            CrowdfundingError::InsufficientFunds
+        );
+
+        // Transfer funds to artist and Muzikie using the generalized transfer method
+        ctx.accounts.transfer_funds(&ctx.accounts.owner, artist_share)?;
+        ctx.accounts.transfer_funds(&ctx.accounts.muzikie_address, muzikie_share)?;
+
+        msg!("Project finalized successfully. Funds distributed to artist and Muzikie.");
+
+    } else if project.status == ProjectStatus::Published {
+        project.status = ProjectStatus::Failing;
+        msg!("Project failed to reach the soft cap and is marked as failing.");
+    }
+
     Ok(())
 }
 
@@ -36,19 +40,27 @@ pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
 pub struct FinalizeProject<'info> {
     #[account(mut)]
     pub project: Account<'info, ProjectState>,
-/// CHECK:
-	#[account(mut, signer)]
-    pub muzikie_address: Signer<'info>,
-	/// CHECK:
+    #[account(mut, signer)]
+    pub escrow: Signer<'info>, // Escrow holding the contributions
+    /// CHECK:
     #[account(mut)]
-    pub owner: AccountInfo<'info>,
+    pub owner: AccountInfo<'info>, // Artist's wallet
+    /// CHECK:
+    #[account(mut)]
+    pub muzikie_address: AccountInfo<'info>, // Muzikie's wallet
 
-    /// CHECK: This is not dangerous because we are only accessing system instructions.
-    pub system_program: Program<'info, System>,
+    pub system_program: Program<'info, System>, // System program for SOL transfers
 }
 
-#[error_code]
-pub enum ErrorCode {
-    #[msg("The project does not have sufficient funds for this transfer.")]
-    InsufficientFunds,
+impl<'info> FinalizeProject<'info> {
+    fn transfer_funds(&self, recipient: &AccountInfo<'info>, amount: u64) -> Result<()> {
+        let transfer_context = CpiContext::new(
+            self.system_program.to_account_info(),
+            anchor_lang::system_program::Transfer {
+                from: self.escrow.to_account_info(),
+                to: recipient.to_account_info(),
+            },
+        );
+        anchor_lang::system_program::transfer(transfer_context, amount)
+    }
 }

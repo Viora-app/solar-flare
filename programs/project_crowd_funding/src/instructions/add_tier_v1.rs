@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-// use crate::state::ProjectStatus;
 use crate::state::project_v1::ContributionTier;
 use crate::state::ProjectState;
 use crate::errors::CrowdfundingError;

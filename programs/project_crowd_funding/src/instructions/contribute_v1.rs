@@ -1,16 +1,11 @@
 use anchor_lang::prelude::*;
 use crate::state::{ProjectState, ProjectStatus};
 use crate::errors::CrowdfundingError;
-// use spl_governance::account::TokenAccount;
 
 
 pub fn contribute(ctx: Context<Contribute>, tier_id: u64, amount: u64) -> Result<()> {
     let project = &mut ctx.accounts.project;
 
-    // Debugging: Log the tier_id and available tiers
-    msg!("Searching for tier_id: {}. Available tiers: {:?}", tier_id, project.contribution_tiers);
-
-    // Ensure there are contribution tiers defined
     require!(!project.contribution_tiers.is_empty(), CrowdfundingError::NoContributionTiers);
 
     // Find the contribution tier
@@ -26,14 +21,9 @@ pub fn contribute(ctx: Context<Contribute>, tier_id: u64, amount: u64) -> Result
         CrowdfundingError::HardCapReached
     );
 
-    // Update the project's funding
     project.current_funding += amount;
 
-    // Check if the project has reached the soft cap or hard cap
-    if project.current_funding >= project.hard_cap {
-        project.status = ProjectStatus::SoldOut;
-        msg!("Project has reached the hard cap and is SoldOut.");
-    } else if project.current_funding >= project.soft_cap {
+    if project.current_funding >= project.soft_cap {
         project.status = ProjectStatus::Successful;
         msg!("Project has reached the soft cap and is Successful.");
     }
@@ -43,7 +33,7 @@ pub fn contribute(ctx: Context<Contribute>, tier_id: u64, amount: u64) -> Result
         ctx.accounts.system_program.to_account_info().clone(),
         anchor_lang::system_program::Transfer {
             from: ctx.accounts.contributor.to_account_info(),
-            to: ctx.accounts.muzikie_address.to_account_info(),
+            to: ctx.accounts.escrow.to_account_info(),
         },
     );
 
@@ -60,8 +50,8 @@ pub struct Contribute<'info> {
     pub project: Account<'info, ProjectState>,
     #[account(mut)]
     pub contributor: Signer<'info>, 
-	/// CHECK:
+    /// CHECK:
     #[account(mut)]
-    pub muzikie_address: AccountInfo<'info>,
+    pub escrow: AccountInfo<'info>,
     pub system_program: Program<'info, System>, 
 }
