@@ -10,6 +10,9 @@ project_crowd_funding = "31Yra1Eyy4TcU4saGyWRqHamgvEeauVF1gAnjwqArwoW"
 [registry]
 url = "https://api.apr.dev"
 
+[dependencies]
+spl-governance = "x.y.z"
+
 [provider]
 cluster = "Localnet"
 wallet = "~/.config/solana/id.json"

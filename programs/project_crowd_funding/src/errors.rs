@@ -92,4 +92,7 @@ pub enum CrowdfundingError {
 
     #[msg("The contribution amount does not match the required tier amount.")]
      IncorrectAmount,
+	 
+	 #[msg("The InsufficientFunds was not found or has no unreimbursed contributions.")]
+	 InsufficientFunds
 }

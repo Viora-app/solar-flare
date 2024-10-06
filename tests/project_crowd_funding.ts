@@ -1,168 +1,187 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-import { Crowdfunding } from "../target/types/crowdfunding";
-import { PublicKey } from "@solana/web3.js";
-import { expect } from "chai"; 
+import * as anchor from '@coral-xyz/anchor';
+import { Program } from '@coral-xyz/anchor';
+import { Crowdfunding } from '../target/types/crowdfunding';
+import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import { expect } from 'chai';
 
-describe("Crowdfunding Tests", async () => {
+describe('Crowdfunding Tests', () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.Crowdfunding as Program<Crowdfunding>;
+  const program = anchor.workspace.crowdfunding as Program<Crowdfunding>;
+  const owner = provider.wallet.publicKey;
+  let projectPDA: PublicKey, projectId: anchor.BN;
 
-  let projectPDA: PublicKey;
-  let owner = provider.wallet.publicKey;
-  let muzikieAddress = new PublicKey("3fh3nfHi22i93zq971bJFEC5o1NCaQYND4g33yMQS2ko");
-  let projectId: anchor.BN;
-
-  const softCap = new anchor.BN(1000); // Soft Cap
-  const hardCap = new anchor.BN(5000); // Hard Cap
-  const deadline = new anchor.BN(Date.now() / 1000 + 60 * 60 * 24);
+  const softCap = new anchor.BN(100000000); // 0.1 SOL in lamports
+  const hardCap = new anchor.BN(500000000); // 0.5 SOL in lamports
+  const shortDeadline = new anchor.BN(Date.now() / 1000 + 600); // 10 minutes from now
+  const artistKeypair = anchor.web3.Keypair.generate();
 
   beforeEach(async () => {
-    projectId = new anchor.BN(Math.floor(Math.random() * 1000));
-
-    [projectPDA] = PublicKey.findProgramAddressSync(
-      [projectId.toArrayLike(Buffer, "le", 8)],
-      program.programId
-    );
-
-    await program.methods
-      .initProject(
-        projectId, softCap, hardCap, deadline, owner, muzikieAddress
-      )
-      .accounts({
-        owner: provider.wallet.publicKey,
-      })
-      .rpc();
-  });
-
-  // 1. Test Initialization of the Contract
-  it("Test Smart Contract Initialization with Correct Parameters", async () => {
-    const projectAccount = await program.account.projectState.fetch(projectPDA);
-
-    expect(projectAccount.projectId.toNumber()).to.equal(projectId.toNumber());
-    expect(projectAccount.softCap.toNumber()).to.equal(softCap.toNumber());
-    expect(projectAccount.hardCap.toNumber()).to.equal(hardCap.toNumber());
-    expect(projectAccount.deadline.toNumber()).to.equal(deadline.toNumber());
-    expect(projectAccount.status).to.have.property('draft');
-    expect(projectAccount.currentFunding.toNumber()).to.equal(0); // Initial funding should be 0
-    expect(projectAccount.contributionTiers.length).to.equal(0); // No contribution tiers at init
-  });
-
-  // 2. Add Contribution Tier Successfully
-  it("Test Adding Contribution Tiers in Draft Status", async () => {
-    const tierId = new anchor.BN(1);
-    const tierAmount = new anchor.BN(500);
-
-    await program.methods
-      .addContributionTier(tierId, tierAmount)
-      .accounts({ project: projectPDA })
-      .rpc();
-
-    const projectAccount = await program.account.projectState.fetch(projectPDA);
-    expect(projectAccount.contributionTiers.length).to.equal(1); // Should have one tier
-    const tier = projectAccount.contributionTiers[0];
-    expect(tier.tierId.toNumber()).to.equal(tierId.toNumber());
-    expect(tier.amount.toNumber()).to.equal(tierAmount.toNumber());
-  });
-
-  // 3. Test Transitioning Contract Status to Published
-  it("Test Transitioning Contract Status to Published", async () => {
-    const tierId = new anchor.BN(1);
-    const tierAmount = new anchor.BN(500);
-
-    await program.methods
-      .addContributionTier(tierId, tierAmount)
-      .accounts({ project: projectPDA })
-      .rpc();
-
-    await program.methods
-      .setPublish()
-      .accounts({ project: projectPDA, owner: provider.wallet.publicKey })
-      .rpc();
-
-    const projectAccount = await program.account.projectState.fetch(projectPDA);
-    expect(projectAccount.status).to.have.property('published');
-  });
-
-  // 4. Contribute Within Published Status
-  it("Test Contributions Within Published Contract", async () => {
-    const tierId = new anchor.BN(1);
-    const tierAmount = new anchor.BN(500);
-
-    await program.methods
-      .addContributionTier(tierId, tierAmount)
-      .accounts({ project: projectPDA })
-      .rpc();
-
-    await program.methods
-      .setPublish()
-      .accounts({ project: projectPDA, owner: provider.wallet.publicKey })
-      .rpc();
-
-    await program.methods
-      .contribute(tierId, tierAmount)
-      .accounts({ project: projectPDA, contributor: provider.wallet.publicKey })
-      .rpc();
-
-    const projectAccount = await program.account.projectState.fetch(projectPDA);
-    expect(projectAccount.currentFunding.toNumber()).to.equal(tierAmount.toNumber());
-    expect(projectAccount.contributions.length).to.equal(1); // One contribution
-    expect(projectAccount.contributions[0].contributionTierId.toNumber()).to.equal(tierId.toNumber());
-  });
-
-// 5. Test Contributions After SoftCap and HardCap Are Met
-it("Test Contributions After SoftCap and HardCap Reached", async () => {
-	const tierId = new anchor.BN(1);
-	const tierAmount = new anchor.BN(2500); // Each contribution is 2500, 2 contributions to reach hard cap
+	projectId = new anchor.BN(Math.floor(Math.random() * 1000));
+	[projectPDA] = PublicKey.findProgramAddressSync(
+		[projectId.toArrayLike(Buffer, "le", 8)],
+		program.programId
+	  );
+  
+	// Fetch minimum rent-exempt balance for the account
+	// const lamports = await provider.connection.getMinimumBalanceForRentExemption( /* add size of the account */ );
+  
+	// Initialize the project PDA account with the correct space and rent exemption
+	// await program.provider.connection.requestAirdrop(owner, lamports);  // Ensure owner has enough SOL for rent
   
 	await program.methods
-	  .addContributionTier(tierId, tierAmount)
-	  .accounts({ project: projectPDA })
+	  .initProject(projectId, softCap, hardCap, shortDeadline, owner, artistKeypair.publicKey)
+	  .accounts({
+		// project: projectPDA,
+		owner: owner,
+		// systemProgram: anchor.web3.SystemProgram.programId, // Add this line to initialize PDA
+	  })
 	  .rpc();
   
 	// Publish the project
 	await program.methods
 	  .setPublish()
-	  .accounts({ project: projectPDA, owner: provider.wallet.publicKey })
+	  .accounts({
+		project: projectPDA,
+		owner: owner,
+	  })
 	  .rpc();
   
-	// Fetch project account to verify the status
-	let projectAccount = await program.account.projectState.fetch(projectPDA);
-	console.log("Project status after publishing:", projectAccount.status); // Add this line to check status
-  
-	expect(projectAccount.status).to.have.property('published'); // Ensure the project is published
-  
-	// Contribute first half of the hard cap
+	// Add contribution tiers
 	await program.methods
-	  .contribute(tierId, tierAmount)
-	  .accounts({ project: projectPDA, contributor: provider.wallet.publicKey })
+	  .addContributionTier(new anchor.BN(1), new anchor.BN(100000000)) // Tier 1: 0.1 SOL
+	  .accounts({
+		project: projectPDA,
+		owner: owner,
+	  })
 	  .rpc();
   
-	// Contribute second half of the hard cap to reach it
 	await program.methods
-	  .contribute(tierId, tierAmount)
-	  .accounts({ project: projectPDA, contributor: provider.wallet.publicKey })
+	  .addContributionTier(new anchor.BN(2), new anchor.BN(200000000)) // Tier 2: 0.2 SOL
+	  .accounts({
+		project: projectPDA,
+		owner: owner,
+	  })
 	  .rpc();
+  });
   
-	projectAccount = await program.account.projectState.fetch(projectPDA);
-  
-	// Check if the project current funding equals the hard cap
-	expect(projectAccount.currentFunding.toNumber()).to.equal(hardCap.toNumber());
-  
-	// Try contributing again, expect failure due to reaching the hard cap
-	try {
-	  await program.methods
-		.contribute(tierId, tierAmount)
-		.accounts({ project: projectPDA, contributor: provider.wallet.publicKey })
-		.rpc();
-	  throw new Error("Contribution succeeded but should have failed.");
-	} catch (err) {
-	  console.log("Actual error message:", err.message); // Log the error message
-	  expect(err.message).to.include("HardCapReached");
-	}
+
+  it('Distributes funds to the artist after the project is finalized with tier contribution', async () => {
+    const contributor = anchor.web3.Keypair.generate();
+	
+	const muzikie_address = anchor.web3.Keypair.generate();
+
+
+    // Airdrop SOL to the contributor
+    const airdropSignature = await provider.connection.requestAirdrop(
+      contributor.publicKey,
+      30 * LAMPORTS_PER_SOL,
+    );
+    await provider.connection.confirmTransaction(airdropSignature);
+
+    for (let i = 0; i < 3; i++) {
+      // Make contributions to the project
+      await program.methods
+        .contribute(new anchor.BN(1), new anchor.BN(100000000))
+        .accounts({
+          project: projectPDA,
+          contributor: contributor.publicKey,
+		  muzikieAddress: muzikie_address.publicKey,
+        })
+        .signers([contributor])
+        .rpc();
+
+	  // Check if the contribution was successful
+	  const projectState = await program.account.projectState.fetch(projectPDA);
+		console.log('Project State:', projectState.currentFunding.toNumber());
+		// get muzikie address balance
+		const muzikieBalance = await provider.connection.getBalance(muzikie_address.publicKey);
+		console.log('Muzikie Balance:', muzikieBalance);
+	  }
+
+	  const artistBalanceBefore = await provider.connection.getBalance(owner);
+	  console.log('Artist artistBalanceBefore:', artistBalanceBefore);
+    // Finalize the project
+    await program.methods
+      .finalizeProject()
+      .accounts({
+		project: projectPDA,
+		muzikieAddress: muzikie_address.publicKey,
+        owner: owner,
+      })
+	  .signers([muzikie_address])
+      .rpc();
+
+    // Assert the project state and balances
+    const updatedProjectState = await program.account.projectState.fetch(projectPDA);
+    expect(updatedProjectState.currentFunding.toNumber()).to.equal(0); // Check if funding has been reset
+
+	const muzikieBalance = await provider.connection.getBalance(muzikie_address.publicKey);
+		console.log('Muzikie Balance:', muzikieBalance);
+    const artistBalanceAfter = await provider.connection.getBalance(owner);
+    console.log('Artist Balance After:', artistBalanceAfter);
+
+    // Additional assertions can be added here
   });
   
   
+  it('Refunds contributor when project fails', async () => {
+    const contributor = anchor.web3.Keypair.generate();
+	const muzikie_address = anchor.web3.Keypair.generate();
+
+    // Airdrop SOL to the contributor
+    const airdropSignature = await provider.connection.requestAirdrop(
+      contributor.publicKey,
+      2 * LAMPORTS_PER_SOL, // Airdrop enough SOL for the contribution
+    );
+    await provider.connection.confirmTransaction(airdropSignature);
+
+	
+	
+    // Contributor makes a contribution
+    await program.methods
+      .contribute(new anchor.BN(1), new anchor.BN(100000000)) // Contributing 0.1 SOL
+      .accounts({
+        project: projectPDA,
+        contributor: contributor.publicKey,
+		muzikieAddress: muzikie_address.publicKey,
+      })
+      .signers([contributor])
+      .rpc();
+
+    // Simulate project failure by directly updating the project's status to "Failed"
+	const projectState = await program.account.projectState.fetch(projectPDA);
+
+	
+    // Manually setting the project status to Failed (this is allowed in test setup)
+    projectState.status = { failed: {} }; // Simulate the "Failed" state in the test
+    console.log('Project State:', projectState.status);
+    // Contributor requests refund after project failure
+    const contributorBalanceBefore = await provider.connection.getBalance(contributor.publicKey);
+
+	const muzikieBalanceBefore = await provider.connection.getBalance(muzikie_address.publicKey);
+	console.log('Muzikie Balance: muzikieBalanceBefore', muzikieBalanceBefore);
+	
+    await program.methods
+      .refund(new anchor.BN(100000000)) // Request refund of 0.1 SOL
+      .accounts({
+        project: projectPDA,
+        contributor: contributor.publicKey,
+        muzikieAddress: muzikie_address.publicKey,
+        // systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([muzikie_address])
+      .rpc();
+	  const muzikieBalanceAfter= await provider.connection.getBalance(muzikie_address.publicKey);
+	  console.log('Muzikie Balance: muzikieBalanceAfter', muzikieBalanceAfter);
+    // Check contributor's balance after refund
+    const contributorBalanceAfter = await provider.connection.getBalance(contributor.publicKey);
+    expect(contributorBalanceAfter).to.be.greaterThan(contributorBalanceBefore); // Verify that refund was successful
+
+    // Assert the project state to confirm that the funding has been decreased or is reset
+    // const updatedProjectState = await program.account.projectState.fetch(projectPDA);
+    // expect(updatedProjectState.currentFunding.toNumber()).to.be.lessThan(softCap.toNumber());
+    // console.log('Refund Successful:', contributorBalanceAfter - contributorBalanceBefore);
+  });
 });

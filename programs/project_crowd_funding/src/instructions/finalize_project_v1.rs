@@ -1,23 +1,34 @@
 use anchor_lang::prelude::*;
-use crate::state::{ProjectState, ProjectStatus};
-use crate::errors::CrowdfundingError;
+use anchor_lang::system_program::{self, Transfer};
+use crate::state::ProjectState;
 
 pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
-    let project = &mut ctx.accounts.project;
+    let project = &ctx.accounts.project; // Immutable borrow
 
-    // Ensure the deadline has passed
-    require!(Clock::get()?.unix_timestamp >= project.deadline, CrowdfundingError::DeadlineNotReached);
+    // Fetch the amount to transfer from the immutable reference
+    let amount_to_transfer = project.current_funding * 80 / 100;
 
-    // If the soft cap is met, mark the project as Successful
-    if project.current_funding >= project.soft_cap {
-        project.status = ProjectStatus::Successful;
-        ctx.accounts.distribute_funds()?;
-        msg!("Project successfully finalized.");
-    } else {
-        project.status = ProjectStatus::Failed;
-        msg!("Project failed to meet the soft cap.");
+    if amount_to_transfer == 0 {
+        return Err(error!(ErrorCode::InsufficientFunds));
     }
 
+
+    // Construct the CPI context for the transfer
+    let cpi_context = CpiContext::new(
+        ctx.accounts.system_program.to_account_info(),
+        Transfer {
+            from: ctx.accounts.muzikie_address.to_account_info(), // Still using the mutable borrow here
+            to: ctx.accounts.owner.to_account_info(),
+        },
+    );
+
+    // Execute the transfer
+    system_program::transfer(cpi_context, amount_to_transfer)?;
+
+    // Now mutate the project state
+    let project_mut = &mut ctx.accounts.project; // Mutable borrow here
+    project_mut.current_funding = 0; // Reset funding to zero after transfer
+    msg!("Successfully transferred {} lamports from project to owner.", amount_to_transfer);
     Ok(())
 }
 
@@ -25,47 +36,19 @@ pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
 pub struct FinalizeProject<'info> {
     #[account(mut)]
     pub project: Account<'info, ProjectState>,
-    pub system_program: Program<'info, System>, // System program for SOL transfers
+/// CHECK:
+	#[account(mut, signer)]
+    pub muzikie_address: Signer<'info>,
+	/// CHECK:
     #[account(mut)]
-    pub artist: Signer<'info>, // Artist's wallet
-     /// CHECK
-    #[account(mut)]
-    pub muzikie: AccountInfo<'info>, // Muzikie's wallet
+    pub owner: AccountInfo<'info>,
+
+    /// CHECK: This is not dangerous because we are only accessing system instructions.
+    pub system_program: Program<'info, System>,
 }
 
-impl<'info> FinalizeProject<'info> {
-    pub fn distribute_funds(&self) -> Result<()> {
-        let total_funding = self.project.current_funding;
-
-        // Calculate artist and Muzikie's shares (80% to artist, 20% to Muzikie)
-        let artist_share = total_funding * 80 / 100;
-        let muzikie_share = total_funding * 20 / 100;
-
-        // Transfer SOL to the artist
-        let artist_cpi_context = CpiContext::new(
-            self.system_program.to_account_info().clone(), // System program account
-            anchor_lang::system_program::Transfer {
-                from: self.project.to_account_info(),
-                to: self.artist.to_account_info(),
-            },
-        );
-
-        // Invoke the transfer instruction for the artist
-        anchor_lang::system_program::transfer(artist_cpi_context, artist_share)?;
-
-        // Transfer SOL to Muzikie
-        let muzikie_cpi_context = CpiContext::new(
-            self.system_program.to_account_info().clone(), // System program account
-            anchor_lang::system_program::Transfer {
-                from: self.project.to_account_info(),
-                to: self.muzikie.to_account_info(),
-            },
-        );
-
-        // Invoke the transfer instruction for Muzikie
-        anchor_lang::system_program::transfer(muzikie_cpi_context, muzikie_share)?;
-
-        msg!("Funds distributed to artist and Muzikie.");
-        Ok(())
-    }
+#[error_code]
+pub enum ErrorCode {
+    #[msg("The project does not have sufficient funds for this transfer.")]
+    InsufficientFunds,
 }
