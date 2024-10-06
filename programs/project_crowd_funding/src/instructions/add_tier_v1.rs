@@ -9,7 +9,6 @@ pub fn add_tier(ctx: Context<AddTier>, tier_id: u64, amount: u64) -> Result<()> 
     // Ensure we have fewer than 5 tiers
     require!(project.contribution_tiers.len() < 5, CrowdfundingError::MaxContributionTiersReached);
 
-    // Add the new contribution tier
     project.contribution_tiers.push(ContributionTier { tier_id, amount });
 
     msg!("Added contribution tier ID: {} with amount: {}", tier_id, amount);

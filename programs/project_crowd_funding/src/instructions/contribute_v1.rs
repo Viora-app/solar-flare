@@ -8,6 +8,7 @@ pub fn contribute(ctx: Context<Contribute>, tier_id: u64, amount: u64) -> Result
 
     require!(!project.contribution_tiers.is_empty(), CrowdfundingError::NoContributionTiers);
 
+    require!(project.status == ProjectStatus::Published || project.status == ProjectStatus::Successful, CrowdfundingError::ProjectNotPublished);
     // Find the contribution tier
     let tier = project.contribution_tiers.iter().find(|&t| t.tier_id == tier_id);
     require!(tier.is_some(), CrowdfundingError::TierNotFound);

@@ -80,8 +80,8 @@ pub enum CrowdfundingError {
     #[msg("The project's deadline has not been reached.")]
     DeadlineNotReached,
 
-    #[msg("The project is not in Failed state.")]
-    ProjectNotFailed,
+    #[msg("The project is not in Failing state.")]
+    ProjectNotFailing,
 
     #[msg("The project must have at least one contribution tier.")]
     NoContributionTiers,

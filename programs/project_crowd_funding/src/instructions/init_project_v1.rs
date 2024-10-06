@@ -13,7 +13,7 @@ pub fn init_project(
     let project = &mut ctx.accounts.project;
 
     project.project_id = project_id;
-	project.owner = owner;
+    project.owner = owner;
     project.soft_cap = soft_cap;
     project.hard_cap = hard_cap;
     project.deadline = deadline;

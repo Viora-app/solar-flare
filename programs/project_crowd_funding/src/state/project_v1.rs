@@ -1,3 +1,4 @@
+
 use anchor_lang::prelude::*;
 
 #[account]
@@ -16,29 +17,29 @@ pub struct ProjectState {
 
 impl ProjectState {
 	pub const LEN: usize = 8 // project_id
-    + 32 // owner
-    + 8 // soft_cap
-    + 8 // hard_cap
-    + 8 // deadline
-    + 8 // current_funding
-    + 1 // status (enum is 1 byte)
-    + 32 // muzikie_address
-    + 1 // bump
+    + 32
+    + 8
+    + 8
+    + 8
+    + 8
+    + 1 
+    + 32
+    + 1 
     + (5 * ContributionTier::LEN); // Up to 5 contribution tiers
 }
 
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct ContributionTier {
-    pub tier_id: u64,   // Unique ID for the tier
-    pub amount: u64,    // Amount of SOL for this tier
+    pub tier_id: u64,
+    pub amount: u64,
 }
 
 impl ContributionTier {
     pub const LEN: usize = 8 + 8; // 16 bytes (tier_id + amount)
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq)] // Add PartialEq here
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
 pub enum ProjectStatus {
     Draft,
     Published,
