@@ -5,28 +5,22 @@ use crate::errors::CrowdfundingError;
 pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
     let project = &mut ctx.accounts.project;
     let current_timestamp = Clock::get()?.unix_timestamp;
+    let owner_share = 85;
 
     // Ensure the project deadline has passed
+    // We have to disable this check for DEMO
     require!(
         current_timestamp > project.deadline,
         CrowdfundingError::DeadlineNotPassed
     );
 
-    if project.status == ProjectStatus::Successful {
-        let artist_share = (project.current_funding * 84) / 100;
-        let muzikie_share = (project.current_funding * 15) / 100;
-        let escrow_balance = **ctx.accounts.escrow.lamports.borrow();
+    if project.status == ProjectStatus::Successful || project.status == ProjectStatus::SoldOut {
+        let artist_share = (project.current_funding * owner_share) / 100;
 
-        require!(
-            escrow_balance >= artist_share + muzikie_share,
-            CrowdfundingError::InsufficientFunds
-        );
-
-        // Transfer funds to artist and Muzikie using the generalized transfer method
+        // Transfer funds to artist and App using the generalized transfer method
         ctx.accounts.transfer_funds(&ctx.accounts.owner, artist_share)?;
-        ctx.accounts.transfer_funds(&ctx.accounts.muzikie_address, muzikie_share)?;
 
-        msg!("Project finalized successfully. Funds distributed to artist and Muzikie.");
+        msg!("Project finalized successfully. Funds distributed to artist and app.");
 
     } else if project.status == ProjectStatus::Published {
         project.status = ProjectStatus::Failing;
@@ -40,14 +34,14 @@ pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
 pub struct FinalizeProject<'info> {
     #[account(mut)]
     pub project: Account<'info, ProjectState>,
-    #[account(mut, signer)]
-    pub escrow: Signer<'info>, // Escrow holding the contributions
+
     /// CHECK:
     #[account(mut)]
     pub owner: AccountInfo<'info>, // Artist's wallet
+
     /// CHECK:
-    #[account(mut)]
-    pub muzikie_address: AccountInfo<'info>, // Muzikie's wallet
+    #[account(mut, signer)]
+    pub app_address: Signer<'info>, // App's wallet
 
     pub system_program: Program<'info, System>, // System program for SOL transfers
 }
@@ -57,7 +51,7 @@ impl<'info> FinalizeProject<'info> {
         let transfer_context = CpiContext::new(
             self.system_program.to_account_info(),
             anchor_lang::system_program::Transfer {
-                from: self.escrow.to_account_info(),
+                from: self.app_address.to_account_info(),
                 to: recipient.to_account_info(),
             },
         );
