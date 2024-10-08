@@ -9,7 +9,7 @@ use crate::errors::CrowdfundingError;
 use instructions::*;
 use state::project_v1::{ProjectState, ProjectStatus};
 
-declare_id!("31Yra1Eyy4TcU4saGyWRqHamgvEeauVF1gAnjwqArwoW");
+declare_id!("3zkoTzTLyfPGhzCXWyfdt4Y3pfaNKCf8R8DBNunxDSvA");
 
 #[program]
 pub mod crowdfunding {
@@ -21,8 +21,7 @@ pub mod crowdfunding {
         soft_cap: u64,
         hard_cap: u64,
         deadline: i64,
-        wallet_address: Pubkey,
-        muzikie_address: Pubkey,
+        app_address: Pubkey,
     ) -> Result<()> {
         instructions::init_project_v1::init_project(
             ctx,
@@ -30,8 +29,7 @@ pub mod crowdfunding {
             soft_cap,
             hard_cap,
             deadline,
-            wallet_address,
-            muzikie_address,
+            app_address,
         )
     }
 
@@ -42,10 +40,10 @@ pub mod crowdfunding {
             project.status == ProjectStatus::Draft,
             CrowdfundingError::ProjectNotInDraft
         );
-        // require!(
-        //     !project.contribution_tiers.is_empty(),
-        //     CrowdfundingError::NoContributionTiers
-        // );
+        require!(
+            !project.contribution_tiers.is_empty(),
+            CrowdfundingError::NoContributionTiers
+        );
 
         // Set the status to Published
         project.status = ProjectStatus::Published;

@@ -20,6 +20,7 @@ pub fn add_tier(ctx: Context<AddTier>, tier_id: u64, amount: u64) -> Result<()> 
 pub struct AddTier<'info> {
     #[account(mut)]
     pub project: Account<'info, ProjectState>,
-    #[account(mut)]
+
+    #[account(mut, signer)]
     pub owner: Signer<'info>, // Project owner
 }

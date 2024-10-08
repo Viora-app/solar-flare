@@ -11,7 +11,6 @@ pub struct ProjectState {
     pub current_funding: u64,
     pub contribution_tiers: Vec<ContributionTier>,
     pub status: ProjectStatus,
-    pub escrow: Pubkey, // project's account witch contains the funds
 	pub bump: u8,
 }
 
@@ -46,6 +45,5 @@ pub enum ProjectStatus {
     Successful,
     SoldOut,
     Failed,
-    Reimbursing,
     Failing,
 }
