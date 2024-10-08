@@ -2,7 +2,10 @@
   "license": "ISC",
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "copy:idl": "cp ./target/idl/crowdfunding.json ../api/src/utils/network",
+    "copy:types": "cp ./target/types/crowdfunding.ts ../api/src/utils/network",
+    "copy": "npm run copy:idl && npm run copy:types"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
