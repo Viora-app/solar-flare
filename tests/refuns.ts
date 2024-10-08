@@ -17,7 +17,7 @@ describe('Refund Scenarios', () => {
   let hardCap: anchor.BN;
   let shortDeadline: anchor.BN;
   const escrow = anchor.web3.Keypair.generate();
-  const muzikieAddress = anchor.web3.Keypair.generate();
+  const appAddress = anchor.web3.Keypair.generate();
   const contributor = anchor.web3.Keypair.generate();
 
   beforeEach(async () => {
@@ -46,7 +46,7 @@ describe('Refund Scenarios', () => {
 
     // Initialize the new project
     await program.methods
-      .initProject(projectId, softCap, hardCap, shortDeadline, owner, muzikieAddress.publicKey)
+      .initProject(projectId, softCap, hardCap, shortDeadline, owner, appAddress.publicKey)
       .accounts({
         owner: owner,
       })
@@ -100,7 +100,7 @@ await new Promise((resolve) => setTimeout(resolve, 6000));
       .finalizeProject()
       .accounts({
         project: projectPDA,
-        muzikieAddress: muzikieAddress.publicKey,
+        appAddress: appAddress.publicKey,
         escrow: escrow.publicKey,
         owner: owner,
       })

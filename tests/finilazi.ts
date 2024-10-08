@@ -18,7 +18,7 @@ describe('Finalize Project Scenarios', () => {
   let hardCap: anchor.BN;
   let shortDeadline: anchor.BN;
   const escrow = anchor.web3.Keypair.generate();
-  const muzikieAddress = anchor.web3.Keypair.generate();
+  const appAddress = anchor.web3.Keypair.generate();
   const contributor = anchor.web3.Keypair.generate();
 
   beforeEach(async () => {
@@ -43,7 +43,7 @@ describe('Finalize Project Scenarios', () => {
 
     // Initialize the new project
     await program.methods
-      .initProject(projectId, softCap, hardCap, shortDeadline, owner, muzikieAddress.publicKey)
+      .initProject(projectId, softCap, hardCap, shortDeadline, owner, appAddress.publicKey)
       .accounts({
         owner: owner,
       })
@@ -95,7 +95,7 @@ describe('Finalize Project Scenarios', () => {
       .finalizeProject()
       .accounts({
         project: projectPDA,
-        muzikieAddress: muzikieAddress.publicKey,
+        appAddress: appAddress.publicKey,
         escrow: escrow.publicKey,
         owner: owner,
       })
@@ -127,7 +127,7 @@ describe('Finalize Project Scenarios', () => {
       .finalizeProject()
       .accounts({
         project: projectPDA,
-        muzikieAddress: muzikieAddress.publicKey,
+        appAddress: appAddress.publicKey,
         escrow: escrow.publicKey,
         owner: owner,
       })
