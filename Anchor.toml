@@ -5,13 +5,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-project_crowd_funding = "31Yra1Eyy4TcU4saGyWRqHamgvEeauVF1gAnjwqArwoW"
+project_crowd_funding = "3zkoTzTLyfPGhzCXWyfdt4Y3pfaNKCf8R8DBNunxDSvA"
 
 [registry]
 url = "https://api.apr.dev"
-
-[dependencies]
-spl-governance = "x.y.z"
 
 [provider]
 cluster = "Localnet"
