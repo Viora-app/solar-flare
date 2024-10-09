@@ -51,7 +51,9 @@ solana-test-validator -r
 anchor deploy
 ```
 ** Get network config**
+
 To see your current config:
+
 ```bash
 solana config get
 ```
