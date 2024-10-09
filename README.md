@@ -87,3 +87,16 @@ You can switch the network by passing:
 ```
 
 Supported networks: `localnet`, `devnet`, `mainnet`.
+
+
+
+## ⚠️ Temporary Changes for Solana Radar Hackathon 2024 Demo
+
+### Important Notice:
+
+For the **Solana Radar Hackathon 2024 Demo Day**, we have **temporarily commented out the campaign deadline section** in the code. This change has been made to allow seamless testing and demonstration of the platform without enforcing time restrictions on campaign deadlines.
+
+- This modification ensures that users can create and fund campaigns during the demo without the need to meet specific deadlines.
+- **After the Demo Day**, we will revert the code back to its original state, reintroducing the deadline functionality for campaign completion.
+
+Please note that this is a **temporary modification** made specifically for the hackathon event and is not reflective of the platform's final behavior.
