@@ -4,10 +4,11 @@
 This repository contains the Solana program for Viora, a crowdfunding platform for music artists to gather funds for their future work. The program is built using the Anchor framework and can be deployed to various networks like localnet, devnet, testnet, and mainnet.
 
 ## Prerequisites
+- Ensure you have Rust installed: [Rust Installation](https://www.rust-lang.org/tools/install)
 - Install Solana CLI: [Solana CLI](https://docs.solana.com/cli/install-solana-cli-tools)
 - Install Anchor: [Anchor Installation](https://book.anchor-lang.com/chapter_2/installation.html)
-- Ensure you have Rust installed: [Rust Installation](https://www.rust-lang.org/tools/install)
-
+- Install Nodejs using nvm
+- Install Yarn
 ---
 
 ## Commands
