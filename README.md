@@ -50,9 +50,21 @@ solana-test-validator -r
 ```bash
 anchor deploy
 ```
-
+** Get network config**
+To see your current config:
+```bash
+solana config get
+```
+You should see output similar to the following:
+```bash
+Config File: /Users/test/.config/solana/cli/config.yml
+RPC URL: https://api.mainnet-beta.solana.com
+WebSocket URL: wss://api.mainnet-beta.solana.com/ (computed)
+Keypair Path: /Users/test/.config/solana/id.json
+Commitment: confirmed
+```
 **Set network**
-
+To change network config:
 ```bash
 solana config set -ul
 ```
