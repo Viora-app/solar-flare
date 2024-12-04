@@ -2,6 +2,8 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer as SplTransfer};
 use solana_program::system_instruction;
 
+use crate::state::{ ProjectStatus, Project};
+
 // define an anchor instruction that allows fans to contribute to the artist new campaign by USDC
 #[derive(Accounts)]
 pub struct ContributeSpl<'info> {
@@ -9,7 +11,7 @@ pub struct ContributeSpl<'info> {
     #[account(mut)]
     pub contributer_ata: Account<'info, TokenAccount>, // The Fan's ATA
 
-    pub project: Signer<'info> */
+    pub project: Account<'info, Project>
     #[account(mut)]
     pub project_ata: Account<'info, TokenAccount>, //The Project (Campaign)'s ATA
     pub token_program: Program<'info, Token>, //the token program

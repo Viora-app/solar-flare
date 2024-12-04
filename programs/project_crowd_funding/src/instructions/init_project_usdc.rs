@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::state::{ProjectState, ProjectStatus};
+use crate::state::{Project, ProjectStatus};
 
 pub fn init_project(
     ctx: Context<InitProject>,
@@ -16,8 +16,8 @@ pub fn init_project(
     //Convert the owner from Signer to Pubkey
     let owner = ctx.accounts.owner.to_account_info(); // This line is redundant, because it's already in the context as ctx.accounts.owner.Pubkey
 
-    //Create a new ProjectState
-    let project = ProjectState {
+    //Create a new Project
+    let project = Project {
         project_id,
         owner,
         soft_cap,
@@ -28,10 +28,10 @@ pub fn init_project(
         status: ProjectStatus::Draft,
     };
 
-    //Create the ProjectState on the blockchain
+    //Create the Project on the blockchain
     ctx.accounts.project.save(&project)?;
 
-    //Initialize the ProjectState in the memory
+    //Initialize the Project in the memory
     *ctx.accounts.project = project;
 
     msg!("Project initialized with ID: {}", project.project_id);
@@ -45,8 +45,8 @@ pub struct InitProject<'info> {
         seeds = [project_id.to_le_bytes().as_ref()], 
         bump, 
         payer = owner, 
-        space = 8 + ProjectState::LEN)]
-    pub project: Account<'info, ProjectState>,
+        space = 8 + Project::LEN)]
+    pub project: Account<'info, Project>,
     #[account(mut)]
     pub owner: Signer<'info>, // The artist or project owner
     pub system_program: Program<'info, System>,

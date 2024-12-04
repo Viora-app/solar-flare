@@ -4,7 +4,7 @@ use anchor_lang::prelude::*;
 #[account]
 pub struct Project {
     pub project_id: u64,
-    pub owner: Pubkey,
+    //pub owner: Pubkey,
     pub soft_cap: u64,
     pub hard_cap: u64,
     pub deadline: i64,
@@ -40,10 +40,10 @@ impl ContributionTier {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
 pub enum ProjectStatus {
-    Draft,
-    Published,
-    Successful,
-    SoldOut,
-    Failed,
-    Failing,
+    Draft, // init
+    Published, // after adding tiers and publishing 
+    Successful, // when soft_cap is reached
+    SoldOut, // when hard_cap is reached
+    Failing,  // when deadling reached but still does not satisfy soft_cap (and absolutely hard_cap)
+    Failed,  // when all of the contributers have been refunded
 }
