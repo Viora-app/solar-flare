@@ -9,6 +9,7 @@ pub fn init_project(
     deadline: i64,
     // owner: Pubkey, // Because it's duplicated in the InitProject Context
 ) -> Result<()> {
+    // TODO: Check if project_id isn't already existing in the blockchain 
     // require soft_cap to be lower than hard_cap
     require!(soft_cap < hard_cap, CrowdfundingError::InvalidSoftCap);
 
