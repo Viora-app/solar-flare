@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer as SplTransfer};
-use solana_program::system_instruction;
+// use solana_program::system_instruction;
 
 use crate::state::{ ProjectStatus, Project};
 
@@ -11,7 +11,7 @@ pub struct ContributeSpl<'info> {
     #[account(mut)]
     pub contributer_ata: Account<'info, TokenAccount>, // The Fan's ATA
 
-    pub project: Account<'info, Project>
+    pub project: Account<'info, Project>,
     #[account(mut)]
     pub project_ata: Account<'info, TokenAccount>, //The Project (Campaign)'s ATA
     pub token_program: Program<'info, Token>, //the token program
@@ -35,8 +35,6 @@ pub fn contribute_spl_tokens(ctx: Context<ContributeSpl>, amount: u64) -> Result
     require!(!(project.status == ProjectStatus::Failed 
         || project.status == ProjectStatus::Failing), 
         CrowdfundingError::ProjectFailed);
-    // Ensure the Fan has sufficient funds to contribute
-    let contributor_balance = ;
 
     // Ensure the contributer's balance is sufficient
     require!(

@@ -14,12 +14,12 @@ pub fn init_project(
     require!(soft_cap < hard_cap, CrowdfundingError::InvalidSoftCap);
 
     //Convert the owner from Signer to Pubkey
-    let owner = ctx.accounts.owner.to_account_info(); // This line is redundant, because it's already in the context as ctx.accounts.owner.Pubkey
+    //let owner = ctx.accounts.owner.to_account_info(); // This line is redundant, because it's already in the context as ctx.accounts.owner.Pubkey
 
     //Create a new Project
     let project = Project {
         project_id,
-        owner,
+        //owner,
         soft_cap,
         hard_cap,
         deadline,
@@ -44,10 +44,10 @@ pub struct InitProject<'info> {
     #[account(init, 
         seeds = [project_id.to_le_bytes().as_ref()], 
         bump, 
-        payer = owner, 
+        payer = artist, 
         space = 8 + Project::LEN)]
     pub project: Account<'info, Project>,
     #[account(mut)]
-    pub owner: Signer<'info>, // The artist or project owner
+    pub artist: Signer<'info>, // The artist or project owner
     pub system_program: Program<'info, System>,
 }
