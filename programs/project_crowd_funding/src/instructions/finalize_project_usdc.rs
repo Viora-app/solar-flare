@@ -3,10 +3,13 @@ use crate::state::{ ProjectStatus. Project};
 use crate::errors::CrowdfundingError;
 
 pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
-    let project = &mut ctx.accounts.project;
+    let project = &mut ctx.accounts.project; // Maybe project status be modified
+    let project_ata = &mut ctx.accounts.project_ata;
+    let artist_ata = &mut ctx.accounts.artist_ata;
+    let viora_ata = &mut ctx.accounts.viora_ata;
     let current_timestamp = Clock::get()?.unix_timestamp;
-    let artist_share = 85;
-    let viora_share = 15;
+    let artist_share = 0.85;
+    let viora_share = 0.15;
     // Ensure the project deadline has passed
     // We have to disable this check for DEMO
     require!(
@@ -15,23 +18,37 @@ pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
     );
 
     if project.status == ProjectStatus::Successful || project.status == ProjectStatus::SoldOut {
-        let artist_share = (project.current_funding * artist_share) / 100; // TODO: check if this division operator works properly
-
+        let artist_amount = project.current_funding * artist_share; // TODO: check if this division operator works properly
+        let viora_amount = project.current_funding * viora_share;
         // Transfer funds to artist and App using the generalized transfer method
-        ctx.accounts.transfer_funds(&ctx.accounts.owner, artist_share)?;
-        // TODO: Transfer viora share
-        ctx.accounts.transfer_funds(&ctx.accounts.viora, (project.current_funding * viora_share) / 100)?;
-        msg!("Project finalized successfully. Funds distributed to artist and app.");
+        // ctx.accounts.transfer_funds(&ctx.accounts.owner, artist_share)?;
+        // // TODO: Transfer viora share
+        // ctx.accounts.transfer_funds(&ctx.accounts.viora, (project.current_funding * viora_share) / 100)?;
+        // msg!("Project finalized successfully. Funds distributed to artist and app.");
 
-        // let cpi_accounts = SplTransfer {
-        //     from: source.to_account_info(),
-        //     to: destination.to_account_info(),
-        //     authority: authority.to_account_info(),
-        // };
-        // let cpi_program = token_program.to_account_info();
-        // token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount)?;
-        // msg!("Successfully contributed {} USDC from fan {} to the project {}.", amount, from, to);
-        // Ok(())
+        // Transfer Artist share
+        let cpi_accounts = SplTransfer {
+            from: project_ata.to_account_info(),
+            to: artist_ata.to_account_info(),
+            authority: project.to_account_info(),
+        };
+        let cpi_program = token_program.to_account_info();
+        token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount)?;
+        msg!("Successfully transfered {} USDC as artist share from project_ata {} to the artist_ata {}.", amount, from, to);
+
+
+        // Transfer Viora share
+        let cpi_accounts = SplTransfer {
+            from: project_ata.to_account_info(),
+            to: viora_ata.to_account_info(),
+            authority: project.to_account_info(),
+        };
+        let cpi_program = token_program.to_account_info();
+        token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount)?;
+        msg!("Successfully transfered {} USDC as platform share from project_ata {} to the viora_ata {}.", amount, from, to);
+
+
+        Ok(())
 
 
     } else if project.status == ProjectStatus::Published {
@@ -45,28 +62,15 @@ pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
 #[derive(Accounts)]
 pub struct FinalizeProject<'info> {
     #[account(mut)]
-    pub project: Account<'info, ProjectState>,
-
-    /// CHECK:
+    pub project: AccountInfo<'info>, // Project
     #[account(mut)]
-    pub owner: AccountInfo<'info>, // Artist's wallet
+    pub project_ata: Account<'info, TokenAccount>, // The Project's ATA
 
-    /// CHECK:
-    #[account(mut, signer)]
-    pub app_address: Signer<'info>, // App's wallet
-
-    pub system_program: Program<'info, System>, // System program for SOL transfers
-}
-
-impl<'info> FinalizeProject<'info> {
-    fn transfer_funds(&self, recipient: &AccountInfo<'info>, amount: u64) -> Result<()> {
-        let transfer_context = CpiContext::new(
-            self.system_program.to_account_info(),
-            anchor_lang::system_program::Transfer {
-                from: self.app_address.to_account_info(),
-                to: recipient.to_account_info(),
-            },
-        );
-        anchor_lang::system_program::transfer(transfer_context, amount)
-    }
+    pub artist: Account<'info, Project>
+    #[account(mut)]
+    pub artist_ata: Account<'info, TokenAccount>, //The Artist's ATA
+    pub viora: Account<'info, Project>
+    #[account(mut)]
+    pub viora_ata: Account<'info, TokenAccount>, //The Viora's ATA
+    pub system_program: Program<'info, System>, // System program for SPL transfers
 }
