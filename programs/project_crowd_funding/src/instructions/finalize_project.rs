@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::{self,Token, TokenAccount, Transfer as SplTransfer};
 use crate::state::{ ProjectStatus, Project};
 use crate::errors::CrowdfundingError;
 
@@ -7,6 +8,7 @@ pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
     let project_ata = &mut ctx.accounts.project_ata;
     let artist_ata = &mut ctx.accounts.artist_ata;
     let viora_ata = &mut ctx.accounts.viora_ata;
+    let token_program = &ctx.accounts.token_program;
     let current_timestamp = Clock::get()?.unix_timestamp;
     let artist_share = 85;
     let viora_share = 15;
@@ -33,8 +35,8 @@ pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
             authority: project.to_account_info(),
         };
         let cpi_program = token_program.to_account_info();
-        token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount)?;
-        msg!("Successfully transfered {} USDC as artist share from project_ata {} to the artist_ata {}.", amount, from, to);
+        token::transfer(CpiContext::new(cpi_program, cpi_accounts), artist_amount)?;
+        msg!("Successfully transfered {} USDC as artist share from project_ata to the artist_ata.", artist_amount);
 
 
         // Transfer Viora share
@@ -44,8 +46,8 @@ pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
             authority: project.to_account_info(),
         };
         let cpi_program = token_program.to_account_info();
-        token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount)?;
-        msg!("Successfully transfered {} USDC as platform share from project_ata {} to the viora_ata {}.", amount, from, to);
+        token::transfer(CpiContext::new(cpi_program, cpi_accounts), viora_amount)?;
+        msg!("Successfully transfered {} USDC as platform share from project_ata to the viora_ata.", viora_amount);
     } else if project.status == ProjectStatus::Published {
         project.status = ProjectStatus::Failing;
         msg!("Project failed to reach the soft cap and is marked as failing.");
@@ -67,5 +69,5 @@ pub struct FinalizeProject<'info> {
     pub viora: Account<'info, Project>,
     #[account(mut)]
     pub viora_ata: Account<'info, TokenAccount>, //The Viora's ATA
-    pub system_program: Program<'info, System>, // System program for SPL transfers
+    pub token_program: Program<'info, Token>, // token program for SPL transfers
 }

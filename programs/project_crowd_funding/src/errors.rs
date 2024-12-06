@@ -20,6 +20,10 @@ pub enum CrowdfundingError {
     #[msg("The soft cap has not been reached.")]
     SoftCapNotReached,
 
+    
+    #[msg("The soft cap must be less than hard cap.")]
+    InvalidSoftCap,
+
     #[msg("The project's deadline has not been reached.")]
     DeadlineNotReached,
 

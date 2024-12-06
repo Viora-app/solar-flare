@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use crate::state::{Project, ProjectStatus};
+use crate::errors::CrowdfundingError;
 
 pub fn init_project(
     ctx: Context<InitProject>,
@@ -17,24 +18,16 @@ pub fn init_project(
     //let owner = ctx.accounts.owner.to_account_info(); // This line is redundant, because it's already in the context as ctx.accounts.owner.Pubkey
 
     //Create a new Project
-    let project = Project {
-        project_id,
-        //owner,
-        soft_cap,
-        hard_cap,
-        deadline,
-        current_funding: 0,
-        contribution_tiers: Vec::new(),
-        status: ProjectStatus::Draft,
-    };
-
-    //Create the Project on the blockchain
-    ctx.accounts.project.save(&project)?;
-
-    //Initialize the Project in the memory
-    *ctx.accounts.project = project;
-
-    msg!("Project initialized with ID: {}", project.project_id);
+    let project = &mut ctx.accounts.project;
+    project.project_id = project_id;
+    project.soft_cap = soft_cap;
+    project.hard_cap = hard_cap;
+    project.deadline = deadline;
+    project.current_funding = 0;
+    project.contribution_tiers = Vec::new();
+    project.status = ProjectStatus::Draft;
+   
+    msg!("Project initialized with ID: ");
     Ok(())
 }
 

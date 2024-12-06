@@ -7,7 +7,7 @@ pub mod state;
 // use state::*;
 use crate::errors::CrowdfundingError;
 use instructions::*;
-use state::project::ProjectStatus;
+use state::project::{Project,ProjectStatus};
 
 declare_id!("3zkoTzTLyfPGhzCXWyfdt4Y3pfaNKCf8R8DBNunxDSvA");
 
@@ -55,8 +55,8 @@ pub mod crowdfunding {
         instructions::add_tier::add_tier(ctx, amount, tier_id)
     }
 
-    pub fn contribute(ctx: Context<Contribute>, amount: u64, tier_id: u64) -> Result<()> {
-        instructions::contribute::contribute(ctx, amount, tier_id)
+    pub fn contribute(ctx: Context<ContributeSpl>, amount: u64, tier_id: u64) -> Result<()> {
+        instructions::contribute::contribute_spl_tokens(ctx, amount, tier_id)
     }
 
     pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
