@@ -38,7 +38,7 @@ pub struct InitProject<'info> {
         seeds = [project_id.to_le_bytes().as_ref()], 
         bump, 
         payer = artist, 
-        space = 8 + Project::LEN)]
+        space = 8 + Project::INIT_SPACE)]
     pub project: Account<'info, Project>,
     #[account(mut)]
     pub artist: Signer<'info>, // The artist or project owner

@@ -2,6 +2,7 @@
 use anchor_lang::prelude::*;
 
 #[account]
+#[derive(InitSpace)]
 pub struct Project {
     pub project_id: u64,
     //pub owner: Pubkey,
@@ -9,36 +10,21 @@ pub struct Project {
     pub hard_cap: u64,
     pub deadline: i64,
     pub current_funding: u64,
+    #[max_len(5)] // Limit Vec to a maximum of 5 tiers
     pub contribution_tiers: Vec<ContributionTier>,
     pub status: ProjectStatus,
 	pub bump: u8,
 }
 
-impl Project {
-	pub const LEN: usize = 8 // project_id
-    + 32
-    + 8
-    + 8
-    + 8
-    + 8
-    + 1 
-    + 32
-    + 1 
-    + (5 * ContributionTier::LEN); // Up to 5 contribution tiers
-}
 
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+#[derive(AnchorSerialize, InitSpace, AnchorDeserialize, Clone, Debug)]
 pub struct ContributionTier {
     pub tier_id: u64,
     pub amount: u64,
 }
 
-impl ContributionTier {
-    pub const LEN: usize = 8 + 8; // 16 bytes (tier_id + amount)
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(AnchorSerialize, InitSpace, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
 pub enum ProjectStatus {
     Draft, // init
     Published, // after adding tiers and publishing 
