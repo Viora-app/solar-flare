@@ -9,7 +9,7 @@ use crate::errors::CrowdfundingError;
 use instructions::*;
 use state::project::{Project,ProjectStatus};
 
-declare_id!("3zkoTzTLyfPGhzCXWyfdt4Y3pfaNKCf8R8DBNunxDSvA");
+declare_id!("HGeP3ahCbRN8n8MLxPZwxxC6MfJPu3M2ccJQjuD5GkHU");
 
 #[program]
 pub mod crowdfunding {

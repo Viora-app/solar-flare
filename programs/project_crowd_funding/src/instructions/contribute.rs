@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{Token, Mint, Transfer as SplTransfer};
-use anchor_spl::token::TokenAccount;
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token_interface::{Mint, Token2022, TokenAccount},
+};
+use anchor_spl::token::Transfer as SplTransfer;
 
 use crate::errors::CrowdfundingError;
 use crate::state::{ Project, ProjectStatus};
@@ -68,9 +70,10 @@ pub struct ContributeSpl<'info> {
     #[account(
         mut,
         associated_token::mint = usdc_mint,
-        associated_token::authority = contributer
+        associated_token::authority = contributer,
+        associated_token::token_program = token_program,
     )]
-    pub contributer_ata: Account<'info, TokenAccount>, // Fan's ATA
+    pub contributer_ata: InterfaceAccount<'info, TokenAccount>, // Fan's ATA
 
     /// The project state account
     #[account(mut)]
@@ -81,12 +84,13 @@ pub struct ContributeSpl<'info> {
         init_if_needed,
         associated_token::mint = usdc_mint,
         associated_token::authority = project,
+        associated_token::token_program = token_program,
         payer = contributer
     )]
-    pub project_ata: Account<'info, TokenAccount>, // Project's ATA
+    pub project_ata: InterfaceAccount<'info, TokenAccount>, // Project's ATA
 
     /// The SPL Token program
-    pub token_program: Program<'info, Token>,
+    pub token_program: Program<'info, Token2022>,
 
     /// The System program (required for associated token creation)
     pub system_program: Program<'info, System>,
@@ -95,6 +99,6 @@ pub struct ContributeSpl<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
 
     /// The USDC mint account
-    pub usdc_mint: Account<'info, Mint>, // USDC Mint
+    pub usdc_mint: InterfaceAccount<'info, Mint>, // USDC Mint
 }
 

@@ -8,14 +8,12 @@ pub fn init_project(
     soft_cap: u64,
     hard_cap: u64,
     deadline: i64,
-    // owner: Pubkey, // Because it's duplicated in the InitProject Context
 ) -> Result<()> {
     // TODO: Check if project_id isn't already existing in the blockchain 
     // require soft_cap to be lower than hard_cap
     require!(soft_cap < hard_cap, CrowdfundingError::InvalidSoftCap);
 
-    //Convert the owner from Signer to Pubkey
-    //let owner = ctx.accounts.owner.to_account_info(); // This line is redundant, because it's already in the context as ctx.accounts.owner.Pubkey
+   
 
     //Create a new Project
     let project = &mut ctx.accounts.project;

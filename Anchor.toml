@@ -4,14 +4,14 @@
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-project_crowd_funding = "3zkoTzTLyfPGhzCXWyfdt4Y3pfaNKCf8R8DBNunxDSvA"
+[programs.devnet]
+project_crowd_funding = "HGeP3ahCbRN8n8MLxPZwxxC6MfJPu3M2ccJQjuD5GkHU"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "Devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
