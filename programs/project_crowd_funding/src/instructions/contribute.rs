@@ -1,48 +1,46 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::AssociatedToken,
-    token_interface::{Mint, Token2022, TokenAccount},
-};
-use anchor_spl::token::Transfer as SplTransfer;
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_interface::{Mint, TokenAccount};
+use anchor_spl::token::{Token, Transfer as SplTransfer};
 
-use crate::errors::CrowdfundingError;
-use crate::state::{ Project, ProjectStatus};
+// use crate::errors::CrowdfundingError;
+use crate::state::Project;
 
-
-
-pub fn contribute_spl_tokens(ctx: Context<ContributeSpl>, amount: u64, tier_id: u64) -> Result<()> {
+pub fn contribute_spl_tokens(ctx: Context<Contribute>, amount: u64, tier_id: u64) -> Result<()> {
     let source = &ctx.accounts.contributer_ata;
     let destination = &ctx.accounts.project_ata;
     let token_program = &ctx.accounts.token_program;
     let authority = &ctx.accounts.contributer;
-    let project = &mut ctx.accounts.project;
-
-    // Check if the tier ID exists in the project's tiers
-    require!(
-        project.contribution_tiers.iter().any(|tier| tier.tier_id == tier_id),
-        CrowdfundingError::TierNotFound
-    );
+    // let project: &mut Account<'_, Project> = &mut ctx.accounts.project;
+// 
+//     msg!("Contributer: {:?}", ctx.accounts.contributer.key);
+// 
+//     // Check if the tier ID exists in the project's tiers
+//     require!(
+//         project.contribution_tiers.iter().any(|tier| tier.tier_id == tier_id),
+//         CrowdfundingError::TierNotFound
+//     );
 
     // Validate the project's state
-    require!(project.status != ProjectStatus::Draft, CrowdfundingError::ProjectNotPublished);
-    require!(project.status != ProjectStatus::SoldOut, CrowdfundingError::HardCapReached);
-    require!(
-        !(project.status == ProjectStatus::Failed || project.status == ProjectStatus::Failing),
-        CrowdfundingError::ProjectFailed
-    );
+    // require!(project.status != ProjectStatus::Draft, CrowdfundingError::ProjectNotPublished);
+    // require!(project.status != ProjectStatus::SoldOut, CrowdfundingError::HardCapReached);
+    // require!(
+    //     !(project.status == ProjectStatus::Failed || project.status == ProjectStatus::Failing),
+    //     CrowdfundingError::ProjectFailed
+    // );
 
-    // Ensure the contributor's balance is sufficient
-    require!(
-        source.amount >= amount,
-        CrowdfundingError::InsufficientFunds
-    );
+    // // Ensure the contributor's balance is sufficient
+    // require!(
+    //     source.amount >= amount,
+    //     CrowdfundingError::InsufficientFunds
+    // );
 
     // Ensure the project has not reached its deadline
-    let current_timestamp: i64 = Clock::get()?.unix_timestamp;
-    require!(
-        current_timestamp <= project.deadline,
-        CrowdfundingError::DeadlineNotPassed
-    );
+    // let current_timestamp: i64 = Clock::get()?.unix_timestamp;
+    // require!(
+    //     current_timestamp <= project.deadline,
+    //     CrowdfundingError::DeadlineNotPassed
+    // );
 
     // TODO: Handle tier-specific contributions here
 
@@ -59,46 +57,39 @@ pub fn contribute_spl_tokens(ctx: Context<ContributeSpl>, amount: u64, tier_id: 
     Ok(())
 }
 
-// define an anchor instruction that allows fans to contribute to the artist new campaign by USDC
 #[derive(Accounts)]
-pub struct ContributeSpl<'info> {
-    /// The signer contributing tokens
-    #[account(mut)]
-    pub contributer: Signer<'info>, // Fan's Wallet
+#[instruction(project_id: u64)]
+pub struct Contribute<'info> {
+    #[account(mut, signer)]
+    pub contributer: Signer<'info>, 
 
-    /// Contributor's Associated Token Account for the specified mint
+    #[account(mut)]
+    pub project: Account<'info, Project>,
+
     #[account(
         mut,
         associated_token::mint = usdc_mint,
         associated_token::authority = contributer,
-        associated_token::token_program = token_program,
+        constraint = contributer_ata.owner == contributer.key(),
+        constraint = contributer_ata.mint == usdc_mint.key()
     )]
-    pub contributer_ata: InterfaceAccount<'info, TokenAccount>, // Fan's ATA
+    pub contributer_ata: InterfaceAccount<'info, TokenAccount>, // Contributor's associated token account
 
-    /// The project state account
-    #[account(mut)]
-    pub project: Account<'info, Project>, // Project State
-
-    /// Project's Associated Token Account for the specified mint
-  #[account(
-        init_if_needed,
+    #[account(
+        init,
+        payer = contributer,
         associated_token::mint = usdc_mint,
         associated_token::authority = project,
-        associated_token::token_program = token_program,
-        payer = contributer
+        constraint = project_ata.owner == token_program.key(),
+        constraint = project_ata.mint == usdc_mint.key()
     )]
-    pub project_ata: InterfaceAccount<'info, TokenAccount>, // Project's ATA
+    pub project_ata: InterfaceAccount<'info, TokenAccount>, // Project's associated token account
 
-    /// The SPL Token program
-    pub token_program: Program<'info, Token2022>,
-
-    /// The System program (required for associated token creation)
+    pub usdc_mint: InterfaceAccount<'info, Mint>, // USDC Mint
+    
+    pub associated_token_program: Program<'info, AssociatedToken>, 
+    pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 
-    /// The Associated Token program
-    pub associated_token_program: Program<'info, AssociatedToken>,
-
-    /// The USDC mint account
-    pub usdc_mint: InterfaceAccount<'info, Mint>, // USDC Mint
 }
 
