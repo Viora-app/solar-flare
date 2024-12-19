@@ -4,12 +4,11 @@ pub mod errors;
 pub mod instructions;
 pub mod state;
 
-// use state::*;
 use crate::errors::CrowdfundingError;
 use instructions::*;
 use state::project::{Project,ProjectStatus};
 
-declare_id!("HGeP3ahCbRN8n8MLxPZwxxC6MfJPu3M2ccJQjuD5GkHU");
+declare_id!("5qA6gzexsw4gia9vsaBDZVJzBPQ4wGZgKTfTyA352TWt");
 
 #[program]
 pub mod crowdfunding {
@@ -47,7 +46,7 @@ pub mod crowdfunding {
         project.status = ProjectStatus::Published;
 
         msg!("Project status set to Published.");
-        msg!("Current project status: {:?}", project.status); // Add this line for logging
+        msg!("Current project status: {:?}", project.status);
         Ok(())
     }
 
@@ -55,7 +54,7 @@ pub mod crowdfunding {
         instructions::add_tier::add_tier(ctx, amount, tier_id)
     }
 
-    pub fn contribute(ctx: Context<ContributeSpl>, amount: u64, tier_id: u64) -> Result<()> {
+    pub fn contribute_spl(ctx: Context<ContributeSpl>, amount: u64, tier_id: u64) -> Result<()> {
         instructions::contribute::contribute_spl_tokens(ctx, amount, tier_id)
     }
 

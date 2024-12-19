@@ -24,8 +24,8 @@ pub fn init_project(
     project.current_funding = 0;
     project.contribution_tiers = Vec::new();
     project.status = ProjectStatus::Draft;
-   
-    msg!("Project initialized with ID: ");
+    project.bump = ctx.bumps.project; // save the canonical bump
+    msg!("Project initialized with ID: {} ", project.project_id);
     Ok(())
 }
 
@@ -33,7 +33,7 @@ pub fn init_project(
 #[instruction(project_id: u64)]
 pub struct InitProject<'info> {
     #[account(init, 
-        seeds = [project_id.to_le_bytes().as_ref()], 
+        seeds = [b"PROJECT", project_id.to_le_bytes().as_ref()], 
         bump, 
         payer = artist, 
         space = 8 + Project::INIT_SPACE)]

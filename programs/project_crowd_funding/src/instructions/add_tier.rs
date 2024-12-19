@@ -20,6 +20,6 @@ pub struct AddTier<'info> {
     #[account(mut)]
     pub project: Account<'info, Project>,
 
-    #[account(mut, signer)]
-    pub artist: Signer<'info>, // artist as project owner
+    #[account(mut)]
+    pub artist: Signer<'info>,// artist as project owner
 }

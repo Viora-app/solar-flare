@@ -1,6 +1,8 @@
 
 use anchor_lang::prelude::*;
 
+
+// Data Account For Project (Campaign)
 #[account]
 #[derive(InitSpace)]
 pub struct Project {

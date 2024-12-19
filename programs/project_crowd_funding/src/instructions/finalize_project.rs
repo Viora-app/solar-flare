@@ -5,13 +5,15 @@ use crate::errors::CrowdfundingError;
 
 pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
     let project = &mut ctx.accounts.project; // Maybe project status be modified
-    let project_ata = &mut ctx.accounts.project_ata;
-    let artist_ata = &mut ctx.accounts.artist_ata;
-    let viora_ata = &mut ctx.accounts.viora_ata;
-    let token_program = &ctx.accounts.token_program;
+    // let project_ata = &mut ctx.accounts.project_ata;
+    // let artist_ata = &mut ctx.accounts.artist_ata;
+    // let viora_ata = &mut ctx.accounts.viora_ata;
+    // let token_program = &ctx.accounts.token_program;
     let current_timestamp = Clock::get()?.unix_timestamp;
     let artist_share = 85;
     let viora_share = 15;
+    let project_id_bytes = project.project_id.to_le_bytes();
+    let project_seed = project_id_bytes.as_ref();
     // Ensure the project deadline has passed
     // We have to disable this check for DEMO
     require!(
@@ -19,7 +21,8 @@ pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
         CrowdfundingError::DeadlineNotPassed
     );
 
-    if project.status == ProjectStatus::Successful || project.status == ProjectStatus::SoldOut {
+    if project.status == ProjectStatus::Successful || 
+    project.status == ProjectStatus::SoldOut {
         let artist_amount = (project.current_funding * artist_share)/100; // TODO: check if this division operator works properly
         let viora_amount = (project.current_funding * viora_share)/100;
         // Transfer funds to artist and App using the generalized transfer method
@@ -30,23 +33,30 @@ pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
 
         // Transfer Artist share
         let cpi_accounts = SplTransfer {
-            from: project_ata.to_account_info(),
-            to: artist_ata.to_account_info(),
+            from: ctx.accounts.project_ata.to_account_info(),
+            to: ctx.accounts.artist_ata.to_account_info(),
             authority: project.to_account_info(),
         };
-        let cpi_program = token_program.to_account_info();
-        token::transfer(CpiContext::new(cpi_program, cpi_accounts), artist_amount)?;
+        
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let seeds = &[b"PROJECT", project_seed, /*&[ctx.bumps.project]*/];
+        let signer = &[&seeds[..]];
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+
+        token::transfer(cpi_ctx, artist_amount)?;
         msg!("Successfully transfered {} USDC as artist share from project_ata to the artist_ata.", artist_amount);
-
-
-        // Transfer Viora share
+        
+        // // Transfer Viora share
         let cpi_accounts = SplTransfer {
-            from: project_ata.to_account_info(),
-            to: viora_ata.to_account_info(),
+            from: ctx.accounts.project_ata.to_account_info(),
+            to: ctx.accounts.viora_ata.to_account_info(),
             authority: project.to_account_info(),
         };
-        let cpi_program = token_program.to_account_info();
-        token::transfer(CpiContext::new(cpi_program, cpi_accounts), viora_amount)?;
+        
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+
+        token::transfer(cpi_ctx, viora_amount)?;
         msg!("Successfully transfered {} USDC as platform share from project_ata to the viora_ata.", viora_amount);
     } else if project.status == ProjectStatus::Published {
         project.status = ProjectStatus::Failing;
@@ -66,6 +76,7 @@ pub struct FinalizeProject<'info> {
     pub artist: Account<'info, Project>,
     #[account(mut)]
     pub artist_ata: Account<'info, TokenAccount>, //The Artist's ATA
+
     pub viora: Account<'info, Project>,
     #[account(mut)]
     pub viora_ata: Account<'info, TokenAccount>, //The Viora's ATA
