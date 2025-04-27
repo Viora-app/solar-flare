@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::state::project_v1::ContributionTier;
-use crate::state::ProjectState;
+use crate::state::{ContributionTier, Project};
 use crate::errors::CrowdfundingError;
 
 pub fn add_tier(ctx: Context<AddTier>, tier_id: u64, amount: u64) -> Result<()> {
@@ -19,8 +18,8 @@ pub fn add_tier(ctx: Context<AddTier>, tier_id: u64, amount: u64) -> Result<()> 
 #[derive(Accounts)]
 pub struct AddTier<'info> {
     #[account(mut)]
-    pub project: Account<'info, ProjectState>,
+    pub project: Account<'info, Project>,
 
-    #[account(mut, signer)]
-    pub owner: Signer<'info>, // Project owner
+    #[account(mut)]
+    pub artist: Signer<'info>,// artist as project owner
 }

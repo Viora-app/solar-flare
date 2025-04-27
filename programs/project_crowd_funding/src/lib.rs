@@ -4,12 +4,11 @@ pub mod errors;
 pub mod instructions;
 pub mod state;
 
-// use state::*;
 use crate::errors::CrowdfundingError;
 use instructions::*;
-use state::project_v1::{ProjectState, ProjectStatus};
+use state::project::{Project,ProjectStatus};
 
-declare_id!("3zkoTzTLyfPGhzCXWyfdt4Y3pfaNKCf8R8DBNunxDSvA");
+declare_id!("5qA6gzexsw4gia9vsaBDZVJzBPQ4wGZgKTfTyA352TWt");
 
 #[program]
 pub mod crowdfunding {
@@ -21,15 +20,13 @@ pub mod crowdfunding {
         soft_cap: u64,
         hard_cap: u64,
         deadline: i64,
-        app_address: Pubkey,
     ) -> Result<()> {
-        instructions::init_project_v1::init_project(
+        instructions::init_project::init_project(
             ctx,
             project_id,
             soft_cap,
             hard_cap,
             deadline,
-            app_address,
         )
     }
 
@@ -49,31 +46,31 @@ pub mod crowdfunding {
         project.status = ProjectStatus::Published;
 
         msg!("Project status set to Published.");
-        msg!("Current project status: {:?}", project.status); // Add this line for logging
+        msg!("Current project status: {:?}", project.status);
         Ok(())
     }
 
     pub fn add_contribution_tier(ctx: Context<AddTier>, amount: u64, tier_id: u64) -> Result<()> {
-        instructions::add_tier_v1::add_tier(ctx, amount, tier_id)
+        instructions::add_tier::add_tier(ctx, amount, tier_id)
     }
 
-    pub fn contribute(ctx: Context<Contribute>, amount: u64, tier_id: u64) -> Result<()> {
-        instructions::contribute_v1::contribute(ctx, amount, tier_id)
+    pub fn contribute_spl(ctx: Context<ContributeSpl>, amount: u64, tier_id: u64) -> Result<()> {
+        instructions::contribute::contribute_spl_tokens(ctx, amount, tier_id)
     }
 
     pub fn finalize_project(ctx: Context<FinalizeProject>) -> Result<()> {
-        instructions::finalize_project_v1::finalize_project(ctx)
+        instructions::finalize_project::finalize_project(ctx)
     }
 
-    pub fn refund(ctx: Context<Refund>, amount: u64) -> Result<()> {
-        instructions::refund_v1::refund(ctx, amount)
-    }
+    // pub fn refund(ctx: Context<Refund>, amount: u64) -> Result<()> {
+    //     instructions::refund::refund(ctx, amount)
+    // }
 }
 
 // The context struct for the set_live function
 #[derive(Accounts)]
 pub struct SetPublish<'info> {
     #[account(mut)]
-    pub project: Account<'info, ProjectState>,
-    pub owner: Signer<'info>, // The wallet that owns the project
+    pub project: Account<'info, Project>,
+    pub artist: Signer<'info>, // The wallet that owns the project
 }
